@@ -344,6 +344,37 @@
             display: block;
         }
 
+        .answer-diff {
+            margin-top: 8px;
+            line-height: 1.9;
+            word-break: break-word;
+        }
+
+        .diff-correct {
+            color: #047857;
+            font-weight: 800;
+        }
+
+        .diff-wrong {
+            background: #dc2626;
+            color: #fff;
+            border-radius: 3px;
+            padding: 1px 2px;
+            font-weight: 800;
+            text-decoration: underline;
+        }
+
+        .correct-answer {
+            margin-top: 8px;
+            color: #065f46;
+            font-weight: 800;
+        }
+
+        .input-wrong {
+            border-color: var(--error) !important;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+        }
+
         /* --- RESULT SCREEN --- */
         .result-box {
             text-align: center;
@@ -922,7 +953,7 @@
                 initSpeechRecognition();
                 hideLoading();
                 switchScreen('game-screen');
-                const totalTime = vocabList.length * 30;
+                const totalTime = vocabList.length * 90;
                 startTimer(totalTime);
                 loadQuestion();
 
@@ -967,6 +998,7 @@
             manualInput.disabled = false;
             manualInput.focus();
             manualInput.style.border = "";
+            manualInput.classList.remove('input-wrong');
 
             currentQuestionFailCount = 0;
             currentQuestionWrongSTT = [];
@@ -986,6 +1018,58 @@
         // ==========================================
         // 1. HÀM KIỂM TRA ĐÁP ÁN (ĐÃ NÂNG CẤP)
         // ==========================================
+        // Hiển thị các ký tự đúng/sai bằng cách căn chỉnh hai chuỗi.
+        function highlightDiff(userAnswer, correctAnswer, displayAnswer = correctAnswer) {
+            const feedbackArea = document.getElementById('feedback-area');
+            const userChars = Array.from(userAnswer);
+            const correctChars = Array.from(correctAnswer);
+            const rows = userChars.length + 1;
+            const cols = correctChars.length + 1;
+            const lcs = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+            for (let i = userChars.length - 1; i >= 0; i--) {
+                for (let j = correctChars.length - 1; j >= 0; j--) {
+                    lcs[i][j] = userChars[i] === correctChars[j]
+                        ? lcs[i + 1][j + 1] + 1
+                        : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+                }
+            }
+
+            const diffLine = document.createElement('div');
+            diffLine.className = 'answer-diff';
+            diffLine.append('Bạn nhập: ');
+            let i = 0;
+            let j = 0;
+            while (i < userChars.length) {
+                const char = document.createElement('span');
+                if (j < correctChars.length && userChars[i] === correctChars[j]) {
+                    char.className = 'diff-correct';
+                    j++;
+                } else {
+                    char.className = 'diff-wrong';
+                    if (j < correctChars.length && lcs[i][j + 1] >= lcs[i + 1][j]) j++;
+                }
+                char.textContent = userChars[i];
+                diffLine.appendChild(char);
+                i++;
+            }
+
+            const correctLine = document.createElement('div');
+            correctLine.className = 'correct-answer';
+            correctLine.textContent = `Đáp án đúng: ${displayAnswer}`;
+
+            feedbackArea.replaceChildren(diffLine, correctLine);
+            feedbackArea.className = 'feedback error';
+        }
+
+        // Xóa gợi ý khi người học quay lại tự sửa đáp án.
+        function handleInputFocus() {
+            const feedbackArea = document.getElementById('feedback-area');
+            feedbackArea.className = 'feedback';
+            feedbackArea.replaceChildren();
+            document.getElementById('manual-input').classList.remove('input-wrong');
+        }
+
         function checkAnswer(userAnswer, inputType = 'manual') {
             const currentVocab = vocabList[currentIndex];
             const feedbackArea = document.getElementById('feedback-area');
@@ -998,6 +1082,10 @@
             const targetWord = (currentVocab.word || "").trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()。、！？「」\s]/g, "");
             const targetIpa = (currentVocab.ipa || "").trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()。、！？「」\s]/g, "");
             const targetContext = (currentVocab.context || "").trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()。、！？「」\s]/g, "");
+            const feedbackAnswer = isKeywordOnlyMode ? targetWord : (targetContext || targetWord);
+            const displayFeedbackAnswer = isKeywordOnlyMode
+                ? (currentVocab.word || "").trim()
+                : ((currentVocab.context || currentVocab.word || "").trim());
 
             // 3. KIỂM TRA ĐÁP ÁN THEO CHẾ ĐỘ
             let isCorrect = false;
@@ -1084,12 +1172,9 @@
                         document.getElementById('manual-input').focus();
                     }
                 }
-                feedbackArea.innerText = `⚠️ Chưa đúng! Bạn vừa nói/gõ là "${userAnswer}". Thử phát âm lại nhé!`;
-                feedbackArea.className = "feedback error";
-
                 const inputEl = document.getElementById('manual-input');
-                inputEl.style.borderColor = "var(--error)";
-                setTimeout(() => { inputEl.style.borderColor = "#e5e7eb"; }, 1000);
+                highlightDiff(cleanUserAnswer, feedbackAnswer, displayFeedbackAnswer);
+                inputEl.classList.add('input-wrong');
             }
         }
         // Lắng nghe sự kiện Enter khi gõ phím
@@ -1101,6 +1186,7 @@
                 }
             }
         });
+        document.getElementById('manual-input').addEventListener('focus', handleInputFocus);
 
         function nextQuestion() {
             currentIndex++;
