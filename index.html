@@ -1114,7 +1114,16 @@
                 new Audio('confetti.mp3').play().catch(e => console.log("Lỗi phát âm thanh:", e));
 
                 if (typeof confetti === 'function') {
-                    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { x: 0, y: 0.6 }
+                    });
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { x: 1, y: 0.6 }
+                    });
                 }
 
                 const earnedScore = isFirstAttempt ? 10 : 5;
