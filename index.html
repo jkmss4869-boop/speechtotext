@@ -912,10 +912,12 @@
             };
         }
 
+        let mediaRecorderStopResolve = null;
+
         async function startMediaRecorder() {
             try {
                 audioChunks = [];
-                if (!mediaStream) {
+                if (!mediaStream || !mediaStream.active) {
                     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 }
                 const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : {};
@@ -933,7 +935,7 @@
                         currentAudioBlob = new Blob(audioChunks, { type: mimeType });
                         currentAudioUrl = URL.createObjectURL(currentAudioBlob);
 
-                        // Hiển thị nút nghe lại
+                        // Hiển thị nút nghe lại tại chỗ
                         const playbackContainer = document.getElementById('playback-container');
                         const player = document.getElementById('student-audio-player');
                         if (playbackContainer && player) {
@@ -941,7 +943,7 @@
                             playbackContainer.style.display = 'flex';
                         }
 
-                        // Đọc Base64 để sẵn sàng upload Drive
+                        // Chuyển sang Base64 để gửi lên Google Drive
                         const reader = new FileReader();
                         reader.onloadend = function () {
                             const base64Data = reader.result.split(',')[1];
@@ -949,8 +951,17 @@
                                 base64: base64Data,
                                 mimeType: mimeType
                             };
+                            if (mediaRecorderStopResolve) {
+                                mediaRecorderStopResolve(lastAudioBase64);
+                                mediaRecorderStopResolve = null;
+                            }
                         };
                         reader.readAsDataURL(currentAudioBlob);
+                    } else {
+                        if (mediaRecorderStopResolve) {
+                            mediaRecorderStopResolve(null);
+                            mediaRecorderStopResolve = null;
+                        }
                     }
                 };
 
@@ -961,9 +972,16 @@
         }
 
         function stopMediaRecorder() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-            }
+            return new Promise((resolve) => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorderStopResolve = resolve;
+                    mediaRecorder.stop();
+                } else if (lastAudioBase64) {
+                    resolve(lastAudioBase64);
+                } else {
+                    resolve(null);
+                }
+            });
         }
 
         function toggleSpeechRecognition() {
@@ -1229,7 +1247,7 @@
             document.getElementById('manual-input').classList.remove('input-wrong');
         }
 
-        function checkAnswer(userAnswer, inputType = 'manual') {
+        async function checkAnswer(userAnswer, inputType = 'manual') {
             const currentVocab = vocabList[currentIndex];
             const feedbackArea = document.getElementById('feedback-area');
 
@@ -1306,10 +1324,19 @@
                 if (typeof isListening !== 'undefined' && isListening && typeof recognition !== 'undefined') {
                     recognition.stop();
                 }
-                stopMediaRecorder();
 
-                // Lưu dữ liệu âm thanh bản thu nếu có
-                const audioRecordData = (inputType === 'speech' && lastAudioBase64) ? { ...lastAudioBase64 } : null;
+                // Dừng ghi âm và chờ lấy dữ liệu audio Base64
+                let audioRecordData = null;
+                if (inputType === 'speech') {
+                    const audioResult = await stopMediaRecorder();
+                    if (audioResult && audioResult.base64) {
+                        audioRecordData = { ...audioResult };
+                    } else if (lastAudioBase64) {
+                        audioRecordData = { ...lastAudioBase64 };
+                    }
+                } else {
+                    stopMediaRecorder();
+                }
 
                 // LƯU CHI TIẾT: Chế độ nào thì lưu "Từ chuẩn" theo chế độ đó
                 detailedAnswers.push({
@@ -1410,41 +1437,14 @@
             statusEl.innerText = "⏳ Đang đồng bộ kết quả & file ghi âm về Google Sheets & Drive...";
             statusEl.style.color = "#6b7280";
 
-            // 1. Duyệt và upload các bản ghi âm lên Drive folder
+            // 1. Chuẩn bị danh sách chi tiết có kèm dữ liệu audio
             const detailsForGAS = [];
             for (let i = 0; i < detailedAnswers.length; i++) {
                 const item = detailedAnswers[i];
-                let audioUrl = "";
-
-                if (item.audioData && item.audioData.base64) {
-                    try {
-                        const cleanStudentName = (studentName || "Student").replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, "_");
-                        const cleanWord = (item.targetWord || "Word").replace(/[^a-zA-Z0-9]/g, "_");
-                        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-                        const fileName = `${cleanStudentName}_${currentSheetName}_Cau${i + 1}_${cleanWord}_${timestamp}.webm`;
-
-                        const uploadPayload = {
-                            action: "uploadAudio",
-                            folderId: DRIVE_FOLDER_ID,
-                            name: studentName,
-                            sheetName: currentSheetName,
-                            fileName: fileName,
-                            mimeType: item.audioData.mimeType || "audio/webm",
-                            base64Data: item.audioData.base64
-                        };
-
-                        const uploadRes = await fetch(WEB_APP_URL, {
-                            method: 'POST',
-                            body: JSON.stringify(uploadPayload)
-                        });
-                        const uploadJson = await uploadRes.json();
-                        if (uploadJson && uploadJson.fileUrl) {
-                            audioUrl = uploadJson.fileUrl;
-                        }
-                    } catch (uploadErr) {
-                        console.warn("Không thể tải bản ghi âm lên Drive:", uploadErr);
-                    }
-                }
+                const cleanStudentName = (studentName || "Student").replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, "_");
+                const cleanWord = (item.targetWord || "Word").replace(/[^a-zA-Z0-9]/g, "_");
+                const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                const fileName = `${cleanStudentName}_${currentSheetName}_Cau${i + 1}_${cleanWord}_${timestamp}.webm`;
 
                 detailsForGAS.push({
                     question: item.question,
@@ -1453,7 +1453,10 @@
                     isCorrect: item.isCorrect,
                     points: item.points,
                     wrongAttempts: item.wrongAttempts,
-                    audioUrl: audioUrl
+                    folderId: DRIVE_FOLDER_ID,
+                    audioBase64: (item.audioData && item.audioData.base64) ? item.audioData.base64 : "",
+                    mimeType: (item.audioData && item.audioData.mimeType) ? item.audioData.mimeType : "audio/webm",
+                    audioFileName: fileName
                 });
             }
 
@@ -1476,11 +1479,15 @@
             try {
                 await fetch(WEB_APP_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payloadScore)
                 });
 
                 await fetch(WEB_APP_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payloadDetail)
                 });
 
