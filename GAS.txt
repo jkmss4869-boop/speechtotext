@@ -1,0 +1,92 @@
+function doGet(e) {
+  var action = e.parameter.action;
+  var sheetName = e.parameter.sheetName || "Sheet1";
+  
+  // 1. API Lấy từ vựng: ?action=getVocab&sheetName=Unit1
+  if (action === "getVocab") {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+    
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify([]))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0]; // Giả sử dòng 1 là header: word, ipa, level, type, meaning, context
+    var vocabList = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] !== "") { // Nếu cột word không rỗng
+        vocabList.push({
+          word: String(data[i][0]),
+          ipa: String(data[i][1] || ""),
+          level: String(data[i][2] || ""),
+          type: String(data[i][3] || ""),
+          meaning: String(data[i][4] || ""),
+          context: String(data[i][5] || "")
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(vocabList))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 2. API Lưu điểm tổng
+    if (action === "saveScore") {
+      var sheet = ss.getSheetByName("Scores") || ss.insertSheet("Scores");
+      // Nếu chưa có header thì tạo header
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Game Type", "Điểm đạt", "Tổng điểm"]);
+      }
+      sheet.appendRow([
+        new Date(),
+        data.name,
+        data.sheetName,
+        data.gameType,
+        data.score,
+        data.total
+      ]);
+      UrlFetchApp.fetch("https://script.google.com/macros/s/AKfycbwJ3d4lCV4MS1Ks6HuGaIPQfv-X6Gn0c5UV3WV-mxge9NUgt1vCkEEJcXFx9YwOEg_S/exec", { method: "post" });
+
+    } 
+    // 3. API Lưu chi tiết từng câu
+    else if (action === "saveDetailList") {
+      var sheet = ss.getSheetByName("Details") || ss.insertSheet("Details");
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Ngữ cảnh câu", "Từ chuẩn", "Học sinh trả lời", "Đúng/Sai", "Điểm", "Lịch sử đọc sai (STT)"]);
+      }
+      
+      var time = new Date();
+      var details = data.details;
+      for (var i = 0; i < details.length; i++) {
+        sheet.appendRow([
+          time,
+          data.name,
+          data.sheetName,
+          details[i].question,
+          details[i].targetWord,
+          details[i].studentAnswer,
+          details[i].isCorrect ? "Đúng" : "Sai",
+          details[i].points,
+          details[i].wrongAttempts || "Không có"
+        ]);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}

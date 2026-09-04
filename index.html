@@ -510,6 +510,49 @@
             animation: bounce-speak 0.8s infinite alternate;
         }
 
+        /* --- STUDENT PLAYBACK AUDIO BUTTON --- */
+        .playback-container {
+            margin-top: 14px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .btn-playback {
+            background: #ecfdf5;
+            color: #059669;
+            border: 2px solid #a7f3d0;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(5, 150, 105, 0.12);
+        }
+
+        .btn-playback:hover {
+            background: #d1fae5;
+            transform: translateY(-1px);
+        }
+
+        .btn-playback.playing {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #059669;
+            animation: pulse-green 1s infinite alternate;
+        }
+
+        @keyframes pulse-green {
+            from { transform: scale(1); }
+            to { transform: scale(1.04); }
+        }
+
         @keyframes bounce-speak {
             from {
                 transform: scale(1);
@@ -697,6 +740,12 @@
                     🎙️
                 </button>
                 <div class="mic-status" id="mic-status">Nhấn vào Micro và đọc từ cần điền</div>
+                <div id="playback-container" class="playback-container">
+                    <button id="playback-btn" class="btn-playback" onclick="playStudentRecording()" title="Nghe lại giọng nói của bạn">
+                        ▶️ Nghe lại bạn vừa nói
+                    </button>
+                    <audio id="student-audio-player" style="display: none;"></audio>
+                </div>
             </div>
 
             <div class="divider">hoặc gõ đáp án nếu không tiện bật mic</div>
@@ -728,6 +777,7 @@
                                 <th>Từ chuẩn</th>
                                 <th>Bạn phát âm/gõ</th>
                                 <th>Điểm</th>
+                                <th>Nghe lại</th>
                             </tr>
                         </thead>
                         <tbody id="detail-table-body">
@@ -775,6 +825,7 @@
         // ==========================================
         // THAY THẾ URL WEB APP CỦA BẠN VÀO ĐÂY:
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwWj2LaGytpJrAu1li5KWANikUwKz1h8E-UGpcb40xSs3_VGsfynBZK38IolZ6p5wExtg/exec";
+        const DRIVE_FOLDER_ID = "1vfDqA0BPOnmSa2DsKm13XhAYKdKUXrod"; // Thư mục lưu audio trên Google Drive
 
         let currentQuestionFailCount = 0;   // Đếm số lần đọc sai của câu hiện tại
         let currentQuestionWrongSTT = [];   // Lưu các chuỗi máy nghe nhầm
@@ -791,12 +842,18 @@
         let isKeywordOnlyMode = true;  // true: Chỉ cần nói có chứa từ khóa (word), false: Phải nói khớp đúng cả câu ngữ cảnh (context)
         let rawVocabListFromSheets = [];
 
-        // Web Speech API Variables
+        // Web Speech API & MediaRecorder Variables
         let recognition = null;
         let isListening = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let mediaStream = null;
+        let currentAudioBlob = null;
+        let currentAudioUrl = null;
+        let lastAudioBase64 = null; // Base64 của bản thu mới nhất để gửi lên Drive
 
         // ==========================================
-        // 2. KHỞI TẠO WEB SPEECH API
+        // 2. KHỞI TẠO WEB SPEECH API & MEDIA RECORDER
         // ==========================================
         function initSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -819,7 +876,7 @@
                 const micStatus = document.getElementById('mic-status');
                 micBtn.classList.add('listening');
                 micBtn.innerHTML = "🔴";
-                micStatus.innerText = "Đang lắng nghe... Hãy nói từ cần điền!";
+                micStatus.innerText = "Đang lắng nghe & ghi âm... Hãy nói!";
                 micStatus.style.color = "var(--error)";
             };
 
@@ -845,12 +902,68 @@
                 } else {
                     micStatus.innerText = "Có lỗi xảy ra, vui lòng sử dụng bàn phím.";
                 }
+                stopMediaRecorder();
                 resetMicUI();
             };
 
             recognition.onend = function () {
+                stopMediaRecorder();
                 resetMicUI();
             };
+        }
+
+        async function startMediaRecorder() {
+            try {
+                audioChunks = [];
+                if (!mediaStream) {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : {};
+                mediaRecorder = new MediaRecorder(mediaStream, options);
+
+                mediaRecorder.ondataavailable = function (e) {
+                    if (e.data && e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = function () {
+                    if (audioChunks.length > 0) {
+                        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+                        currentAudioBlob = new Blob(audioChunks, { type: mimeType });
+                        currentAudioUrl = URL.createObjectURL(currentAudioBlob);
+
+                        // Hiển thị nút nghe lại
+                        const playbackContainer = document.getElementById('playback-container');
+                        const player = document.getElementById('student-audio-player');
+                        if (playbackContainer && player) {
+                            player.src = currentAudioUrl;
+                            playbackContainer.style.display = 'flex';
+                        }
+
+                        // Đọc Base64 để sẵn sàng upload Drive
+                        const reader = new FileReader();
+                        reader.onloadend = function () {
+                            const base64Data = reader.result.split(',')[1];
+                            lastAudioBase64 = {
+                                base64: base64Data,
+                                mimeType: mimeType
+                            };
+                        };
+                        reader.readAsDataURL(currentAudioBlob);
+                    }
+                };
+
+                mediaRecorder.start();
+            } catch (err) {
+                console.warn("Không thể bật MediaRecorder:", err);
+            }
+        }
+
+        function stopMediaRecorder() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
         }
 
         function toggleSpeechRecognition() {
@@ -859,12 +972,57 @@
 
             if (isListening) {
                 recognition.stop();
+                stopMediaRecorder();
             } else {
                 // Xóa input cũ khi bắt đầu nói câu mới
                 document.getElementById('manual-input').value = '';
                 document.getElementById('feedback-area').className = 'feedback';
+                lastAudioBase64 = null;
+                startMediaRecorder();
                 recognition.start();
             }
+        }
+
+        function playStudentRecording() {
+            const player = document.getElementById('student-audio-player');
+            const playbackBtn = document.getElementById('playback-btn');
+            if (!player || !player.src) return;
+
+            if (player.paused) {
+                player.play();
+                playbackBtn.classList.add('playing');
+                playbackBtn.innerHTML = "⏸️ Đang nghe...";
+            } else {
+                player.pause();
+                player.currentTime = 0;
+                playbackBtn.classList.remove('playing');
+                playbackBtn.innerHTML = "▶️ Nghe lại bạn vừa nói";
+            }
+
+            player.onended = function () {
+                playbackBtn.classList.remove('playing');
+                playbackBtn.innerHTML = "▶️ Nghe lại bạn vừa nói";
+            };
+        }
+
+        function resetPlaybackUI() {
+            const playbackContainer = document.getElementById('playback-container');
+            const player = document.getElementById('student-audio-player');
+            const playbackBtn = document.getElementById('playback-btn');
+            if (player) {
+                player.pause();
+                player.removeAttribute('src');
+            }
+            if (playbackBtn) {
+                playbackBtn.classList.remove('playing');
+                playbackBtn.innerHTML = "▶️ Nghe lại bạn vừa nói";
+            }
+            if (playbackContainer) {
+                playbackContainer.style.display = 'none';
+            }
+            currentAudioBlob = null;
+            currentAudioUrl = null;
+            lastAudioBase64 = null;
         }
 
         function resetMicUI() {
@@ -1007,6 +1165,7 @@
             document.getElementById('mic-status').innerText = "Nhấn vào Micro và đọc từ cần điền";
             document.getElementById('feedback-area').className = 'feedback';
             document.getElementById('next-btn').style.display = 'none';
+            resetPlaybackUI();
 
             const blindToggle = document.getElementById('blind-mode-toggle');
             if (blindToggle && blindToggle.checked) {
@@ -1147,6 +1306,10 @@
                 if (typeof isListening !== 'undefined' && isListening && typeof recognition !== 'undefined') {
                     recognition.stop();
                 }
+                stopMediaRecorder();
+
+                // Lưu dữ liệu âm thanh bản thu nếu có
+                const audioRecordData = (inputType === 'speech' && lastAudioBase64) ? { ...lastAudioBase64 } : null;
 
                 // LƯU CHI TIẾT: Chế độ nào thì lưu "Từ chuẩn" theo chế độ đó
                 detailedAnswers.push({
@@ -1155,7 +1318,8 @@
                     studentAnswer: userAnswer + (inputType === 'speech' ? " 🎙️" : " ✍️"),
                     isCorrect: true,
                     points: earnedScore,
-                    wrongAttempts: currentQuestionWrongSTT.length > 0 ? currentQuestionWrongSTT.join(" | ") : "Không có"
+                    wrongAttempts: currentQuestionWrongSTT.length > 0 ? currentQuestionWrongSTT.join(" | ") : "Không có",
+                    audioData: audioRecordData
                 });
 
                 currentQuestionFailCount = 0;
@@ -1214,12 +1378,18 @@
             // Render bảng chi tiết
             const tbody = document.getElementById('detail-table-body');
             tbody.innerHTML = '';
-            detailedAnswers.forEach(item => {
+            detailedAnswers.forEach((item, idx) => {
                 const tr = document.createElement('tr');
+                const hasAudio = item.audioData && item.audioData.base64;
+                const audioBtnHtml = hasAudio
+                    ? `<button class="btn-playback" style="padding: 4px 10px; font-size: 0.82rem;" onclick="playResultAudio(${idx})">▶️ Nghe</button>`
+                    : `<span style="color: #9ca3af; font-size: 0.8rem;">-</span>`;
+
                 tr.innerHTML = `
                     <td class="tag-correct">${item.targetWord}</td>
                     <td>${item.studentAnswer}</td>
                     <td><b>+${item.points}</b></td>
+                    <td style="text-align: center;">${audioBtnHtml}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1228,10 +1398,64 @@
             await saveResultsToGAS();
         }
 
+        function playResultAudio(index) {
+            const item = detailedAnswers[index];
+            if (!item || !item.audioData || !item.audioData.base64) return;
+            const audio = new Audio("data:" + (item.audioData.mimeType || "audio/webm") + ";base64," + item.audioData.base64);
+            audio.play().catch(e => console.warn("Lỗi phát audio:", e));
+        }
+
         async function saveResultsToGAS() {
             const statusEl = document.getElementById('save-status');
-            statusEl.innerText = "⏳ Đang đồng bộ kết quả về Google Sheets...";
+            statusEl.innerText = "⏳ Đang đồng bộ kết quả & file ghi âm về Google Sheets & Drive...";
             statusEl.style.color = "#6b7280";
+
+            // 1. Duyệt và upload các bản ghi âm lên Drive folder
+            const detailsForGAS = [];
+            for (let i = 0; i < detailedAnswers.length; i++) {
+                const item = detailedAnswers[i];
+                let audioUrl = "";
+
+                if (item.audioData && item.audioData.base64) {
+                    try {
+                        const cleanStudentName = (studentName || "Student").replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, "_");
+                        const cleanWord = (item.targetWord || "Word").replace(/[^a-zA-Z0-9]/g, "_");
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                        const fileName = `${cleanStudentName}_${currentSheetName}_Cau${i + 1}_${cleanWord}_${timestamp}.webm`;
+
+                        const uploadPayload = {
+                            action: "uploadAudio",
+                            folderId: DRIVE_FOLDER_ID,
+                            name: studentName,
+                            sheetName: currentSheetName,
+                            fileName: fileName,
+                            mimeType: item.audioData.mimeType || "audio/webm",
+                            base64Data: item.audioData.base64
+                        };
+
+                        const uploadRes = await fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(uploadPayload)
+                        });
+                        const uploadJson = await uploadRes.json();
+                        if (uploadJson && uploadJson.fileUrl) {
+                            audioUrl = uploadJson.fileUrl;
+                        }
+                    } catch (uploadErr) {
+                        console.warn("Không thể tải bản ghi âm lên Drive:", uploadErr);
+                    }
+                }
+
+                detailsForGAS.push({
+                    question: item.question,
+                    targetWord: item.targetWord,
+                    studentAnswer: item.studentAnswer,
+                    isCorrect: item.isCorrect,
+                    points: item.points,
+                    wrongAttempts: item.wrongAttempts,
+                    audioUrl: audioUrl
+                });
+            }
 
             const payloadScore = {
                 action: "saveScore",
@@ -1246,12 +1470,10 @@
                 action: "saveDetailList",
                 sheetName: currentSheetName,
                 name: studentName,
-                details: detailedAnswers
+                details: detailsForGAS
             };
 
             try {
-                // Sử dụng mode 'no-cors' hoặc POST tiêu chuẩn tùy thuộc vào cách bạn setup DoPost bên GAS
-                // Ở đây dùng fetch POST stringify chuẩn
                 await fetch(WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify(payloadScore)
@@ -1262,7 +1484,7 @@
                     body: JSON.stringify(payloadDetail)
                 });
 
-                statusEl.innerText = "✅ Đã lưu điểm và báo cáo chi tiết thành công!";
+                statusEl.innerText = "✅ Đã lưu điểm, chi tiết & bản ghi âm vào Drive thành công!";
                 statusEl.style.color = "var(--success)";
             } catch (error) {
                 console.error("Lỗi khi lưu điểm:", error);
