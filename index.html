@@ -877,7 +877,29 @@
                 micBtn.classList.add('listening');
                 micBtn.innerHTML = "🔴";
                 micStatus.innerText = "Đang lắng nghe & ghi âm... Hãy nói!";
+            };
+
+            recognition.onerror = function (event) {
+                console.error("Speech Recognition Error:", event);
+                const micStatus = document.getElementById('mic-status');
                 micStatus.style.color = "var(--error)";
+
+                const errCode = event.error || "unknown";
+                const errDetail = event.message ? ` (${event.message})` : "";
+
+                if (errCode === 'no-speech') {
+                    micStatus.innerText = "Không nghe thấy giọng nói, bạn thử bấm nói lại nhé. [Lỗi: no-speech]";
+                } else if (errCode === 'not-allowed') {
+                    micStatus.innerText = "Chưa cấp quyền sử dụng Micro hoặc quyền bị từ chối. Vui lòng kiểm tra cài đặt Micro trên Safari/Chrome. [Lỗi: not-allowed]";
+                } else if (errCode === 'network') {
+                    micStatus.innerText = "Lỗi kết nối mạng dịch vụ nhận diện giọng nói (Web Speech cần Internet). [Lỗi: network]";
+                } else if (errCode === 'audio-capture') {
+                    micStatus.innerText = "Không tìm thấy hoặc không khởi động được Micro trên thiết bị. [Lỗi: audio-capture]";
+                } else {
+                    micStatus.innerText = `Lỗi nhận diện: [${errCode}${errDetail}]. Vui lòng chụp lại màn hình hoặc dùng bàn phím.`;
+                }
+                stopMediaRecorder();
+                resetMicUI();
             };
 
             recognition.onresult = function (event) {
@@ -890,20 +912,6 @@
 
                 // Tự động chấm điểm ngay sau khi nói xong
                 checkAnswer(speechResult, 'speech');
-            };
-
-            recognition.onerror = function (event) {
-                console.error("Speech Recognition Error:", event.error);
-                const micStatus = document.getElementById('mic-status');
-                if (event.error === 'no-speech') {
-                    micStatus.innerText = "Không nghe thấy giọng nói, bạn thử bấm nói lại nhé.";
-                } else if (event.error === 'not-allowed') {
-                    micStatus.innerText = "Chưa cấp quyền sử dụng Micro. Vui lòng bật Micro trên trình duyệt.";
-                } else {
-                    micStatus.innerText = "Có lỗi xảy ra, vui lòng sử dụng bàn phím.";
-                }
-                stopMediaRecorder();
-                resetMicUI();
             };
 
             recognition.onend = function () {
@@ -989,15 +997,28 @@
             if (!recognition) return;
 
             if (isListening) {
-                recognition.stop();
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.warn("Lỗi khi dừng recognition:", e);
+                }
                 stopMediaRecorder();
             } else {
                 // Xóa input cũ khi bắt đầu nói câu mới
                 document.getElementById('manual-input').value = '';
                 document.getElementById('feedback-area').className = 'feedback';
                 lastAudioBase64 = null;
+                resetPlaybackUI();
                 startMediaRecorder();
-                recognition.start();
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error("Lỗi khi khởi động nhận diện:", e);
+                    const micStatus = document.getElementById('mic-status');
+                    micStatus.style.color = "var(--error)";
+                    micStatus.innerText = `Không thể bật Micro: [${e.name || 'Error'}: ${e.message || e}].`;
+                    resetMicUI();
+                }
             }
         }
 
