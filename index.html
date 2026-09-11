@@ -1348,15 +1348,12 @@
 
                 // Dừng ghi âm và chờ lấy dữ liệu audio Base64
                 let audioRecordData = null;
-                if (inputType === 'speech') {
-                    const audioResult = await stopMediaRecorder();
-                    if (audioResult && audioResult.base64) {
-                        audioRecordData = { ...audioResult };
-                    } else if (lastAudioBase64) {
-                        audioRecordData = { ...lastAudioBase64 };
-                    }
-                } else {
-                    stopMediaRecorder();
+                const audioResult = await stopMediaRecorder();
+                
+                if (audioResult && audioResult.base64) {
+                    audioRecordData = { ...audioResult };
+                } else if (lastAudioBase64) {
+                    audioRecordData = { ...lastAudioBase64 };
                 }
 
                 // LƯU CHI TIẾT: Chế độ nào thì lưu "Từ chuẩn" theo chế độ đó
