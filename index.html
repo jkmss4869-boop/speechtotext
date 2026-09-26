@@ -992,7 +992,13 @@
             });
         }
 
-        function toggleSpeechRecognition() {
+        // Phát hiện thiết bị iOS (iPhone/iPad) để xử lý mic đặc biệt
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        async function toggleSpeechRecognition() {
             if (!recognition) initSpeechRecognition();
             if (!recognition) return;
 
@@ -1009,15 +1015,34 @@
                 document.getElementById('feedback-area').className = 'feedback';
                 lastAudioBase64 = null;
                 resetPlaybackUI();
-                startMediaRecorder();
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.error("Lỗi khi khởi động nhận diện:", e);
-                    const micStatus = document.getElementById('mic-status');
-                    micStatus.style.color = "var(--error)";
-                    micStatus.innerText = `Không thể bật Micro: [${e.name || 'Error'}: ${e.message || e}].`;
-                    resetMicUI();
+
+                if (isIOS()) {
+                    // === iOS: Bật SpeechRecognition TRƯỚC, rồi mới bật MediaRecorder sau ===
+                    // Tránh xung đột 2 API tranh giành mic trên Safari iOS
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error("Lỗi khi khởi động nhận diện:", e);
+                        const micStatus = document.getElementById('mic-status');
+                        micStatus.style.color = "var(--error)";
+                        micStatus.innerText = `Không thể bật Micro: [${e.name || 'Error'}: ${e.message || e}].`;
+                        resetMicUI();
+                        return;
+                    }
+                    // Chờ 500ms để SpeechRecognition ổn định rồi mới bật ghi âm
+                    setTimeout(() => { startMediaRecorder(); }, 500);
+                } else {
+                    // === Desktop / Android: Giữ nguyên thứ tự cũ ===
+                    await startMediaRecorder();
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error("Lỗi khi khởi động nhận diện:", e);
+                        const micStatus = document.getElementById('mic-status');
+                        micStatus.style.color = "var(--error)";
+                        micStatus.innerText = `Không thể bật Micro: [${e.name || 'Error'}: ${e.message || e}].`;
+                        resetMicUI();
+                    }
                 }
             }
         }
@@ -1148,6 +1173,17 @@
                 detailedAnswers = [];
 
                 initSpeechRecognition();
+
+                // Xin quyền mic sớm để tránh xung đột trên iOS
+                // Khi bấm nút mic, stream đã sẵn sàng, không cần gọi getUserMedia lại
+                try {
+                    if (!mediaStream || !mediaStream.active) {
+                        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                } catch (e) {
+                    console.warn("Chưa lấy được quyền mic lúc khởi tạo:", e);
+                }
+
                 hideLoading();
                 switchScreen('game-screen');
                 const totalTime = vocabList.length * 90;
