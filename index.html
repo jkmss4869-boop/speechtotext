@@ -679,6 +679,16 @@
             margin: 10px 0;
         }
 
+        .performance-rating {
+            display: inline-block;
+            margin: 0 0 16px;
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: #f3e8ff;
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
         .table-responsive {
             max-height: 250px;
             overflow-y: auto;
@@ -968,94 +978,66 @@
         }
 
         .question-set-card {
-            min-width: 0;
-            border: 0;
-            border-radius: 14px;
-            background: transparent;
-        }
-
-        .question-set-card summary {
-            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
+            min-width: 0;
+            border: 0;
+            border-radius: 14px;
             height: 88px;
             padding: 13px 19px 13px 13px;
-            border-radius: 14px;
             background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
             color: #fff;
+            font: inherit;
             font-size: 0.86rem;
             font-weight: 700;
             line-height: 1.25;
             cursor: pointer;
-            list-style: none;
             text-align: center;
             box-shadow: 0 8px 20px rgba(109, 40, 217, 0.28);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, outline-color 0.2s ease;
         }
 
-        #built-in-question-sets .question-set-card:nth-child(1) summary {
+        #built-in-question-sets .question-set-card:nth-child(1) {
             background: linear-gradient(135deg, #8b5cf6, #6d28d9);
             box-shadow: 0 8px 20px rgba(109, 40, 217, 0.28);
         }
 
-        #built-in-question-sets .question-set-card:nth-child(2) summary {
+        #built-in-question-sets .question-set-card:nth-child(2) {
             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             box-shadow: 0 8px 20px rgba(29, 78, 216, 0.26);
         }
 
-        #built-in-question-sets .question-set-card:nth-child(3) summary {
+        #built-in-question-sets .question-set-card:nth-child(3) {
             background: linear-gradient(135deg, #14b8a6, #0f766e);
             box-shadow: 0 8px 20px rgba(15, 118, 110, 0.26);
         }
 
-        #built-in-question-sets .question-set-card:nth-child(4) summary {
+        #built-in-question-sets .question-set-card:nth-child(4) {
             background: linear-gradient(135deg, #fb923c, #c2410c);
             box-shadow: 0 8px 20px rgba(194, 65, 12, 0.24);
         }
 
-        #built-in-question-sets .question-set-card:nth-child(5) summary {
+        #built-in-question-sets .question-set-card:nth-child(5) {
             background: linear-gradient(135deg, #ec4899, #be185d);
             box-shadow: 0 8px 20px rgba(190, 24, 93, 0.25);
         }
 
-        .question-set-card summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .question-set-card summary::before {
+        .question-set-card::before {
             content: "📚";
             flex: 0 0 auto;
             margin-right: 6px;
         }
 
-        .question-set-card summary::after {
-            content: "＋";
-            position: absolute;
-            top: 5px;
-            right: 8px;
-            font-size: 0.9rem;
-        }
-
-        .question-set-card summary:hover {
+        .question-set-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 11px 26px rgba(109, 40, 217, 0.34);
         }
 
-        .question-set-card[open] summary {
-            border-radius: 14px 14px 0 0;
-        }
-
-        .question-set-card[open] summary::after {
-            content: "−";
-        }
-
-        .question-set-content {
-            grid-column: 1 / -1;
-            padding: 14px;
-            border: 1px solid #e9e5f4;
-            border-radius: 14px;
-            background: #faf8ff;
+        .question-set-card[aria-pressed="true"] {
+            outline: 3px solid #312e81;
+            outline-offset: 2px;
+            transform: translateY(-2px);
         }
 
         #built-in-question-sets {
@@ -1065,49 +1047,11 @@
             margin-bottom: 18px;
         }
 
-        #built-in-question-sets .question-set-card[open] {
-            grid-column: 1 / -1;
-        }
-
         @media (max-width: 520px) {
             #built-in-question-sets {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 8px;
             }
-        }
-
-        .question-set-description {
-            margin-bottom: 13px;
-            color: #6b7280;
-            font-size: 0.88rem;
-            line-height: 1.5;
-        }
-
-        .question-set-preview {
-            display: grid;
-            gap: 8px;
-            margin: 0 0 14px;
-            padding: 0;
-            list-style: none;
-        }
-
-        .question-set-preview li {
-            padding: 10px 12px;
-            border: 1px solid #e9e5f4;
-            border-radius: 11px;
-            background: #fff;
-            color: #4b5563;
-            font-size: 0.88rem;
-            line-height: 1.5;
-        }
-
-        .question-set-preview strong {
-            color: #4b5563;
-        }
-
-        .question-set-preview .preview-answer {
-            color: var(--primary-dark);
-            font-weight: 700;
         }
 
         .free-steps,
@@ -1168,18 +1112,6 @@
             color: #5b4b7a;
             text-align: center;
             font-size: 0.9rem;
-        }
-
-        .mic-privacy-note {
-            max-width: 440px;
-            margin: 12px auto 0;
-            padding: 11px 14px;
-            border: 1px solid #bcece4;
-            border-radius: 12px;
-            background: #f0fdfa;
-            color: #3f5e5a;
-            font-size: 0.82rem;
-            line-height: 1.5;
         }
 
         .qa-remove {
@@ -1346,21 +1278,21 @@
 
         <div id="free-setup-screen" class="screen">
             <h1 class="title">✨ Chế độ tự do</h1>
-            <p class="subtitle">Chọn bộ có sẵn hoặc tự tạo tối đa 20 câu hỏi và câu trả lời.</p>
+            <p class="subtitle">Chọn một bộ câu hỏi rồi bắt đầu chơi. Nội dung sẽ hiện lần lượt trong game.</p>
             <div class="free-steps">
                 <strong>Cách chơi</strong>
                 <ol>
-                    <li>Xem trước bộ câu hỏi có sẵn hoặc nhập câu hỏi và câu trả lời của bạn.</li>
+                    <li>Chọn một trong các bộ có sẵn hoặc tự tạo câu hỏi và câu trả lời.</li>
                     <li>Bắt đầu chơi, rồi trả lời bằng mic hoặc bàn phím.</li>
                     <li>Khi game chấm xong, bấm “Câu tiếp theo”.</li>
                 </ol>
             </div>
-            <div id="built-in-question-sets" aria-label="Các bộ câu hỏi có sẵn"></div>
+            <div id="built-in-question-sets" role="group" aria-label="Chọn một bộ câu hỏi có sẵn"></div>
             <div class="form-group">
                 <label>Câu hỏi và câu trả lời <span style="font-weight:500; color:#6b7280;">(tối đa 20 cặp)</span></label>
                 <div id="free-qa-list"></div>
                 <button type="button" class="btn btn-secondary" style="margin-top:0;" onclick="addFreeQaRow()">＋ Thêm cặp câu hỏi</button>
-                <small id="free-word-count" style="display:block; margin-top:8px; color:#6b7280;">1/20 câu hỏi</small>
+                <small id="free-word-count" style="display:block; margin-top:8px; color:#6b7280;">0/20 câu hỏi</small>
             </div>
             <button class="btn btn-primary" onclick="startFreeGame()">
                 <span>Bắt đầu chơi</span> 🚀
@@ -1415,10 +1347,6 @@
                     🎙️
                 </button>
                 <div class="mic-status" id="mic-status">Nhấn vào Micro và đọc từ cần điền</div>
-                <div id="free-mic-privacy-note" class="mic-privacy-note" style="display:none;">
-                    Mic chỉ bật khi bạn nhấn nút. Trình duyệt dùng giọng nói để nhận diện; tùy trình duyệt,
-                    âm thanh có thể được gửi tới dịch vụ nhận diện trực tuyến. Game không ghi âm hoặc gửi kết quả lên Google Sheets/Drive.
-                </div>
                 <div id="playback-container" class="playback-container">
                     <button id="playback-btn" class="btn-playback" onclick="playStudentRecording()" title="Nghe lại giọng nói của bạn">
                         ▶️ Nghe lại bạn vừa nói
@@ -1448,6 +1376,7 @@
 
                 <div class="total-score" id="final-score">80</div>
                 <p style="font-weight: 600; color: #6b7280;">Tổng điểm phản xạ của bạn</p>
+                <div id="result-rating" class="performance-rating"></div>
 
                 <div class="table-responsive">
                     <table>
@@ -1455,6 +1384,7 @@
                             <tr>
                                 <th>Từ chuẩn</th>
                                 <th>Bạn phát âm/gõ</th>
+                                <th>Các lần trả lời sai</th>
                                 <th>Điểm</th>
                                 <th id="result-audio-heading">Nghe lại</th>
                             </tr>
@@ -1472,7 +1402,7 @@
             </div>
         </div>
         <footer class="site-footer">
-            <p><strong>Lưu ý về quyền riêng tư:</strong> Chế độ chơi tự do (Public Mode) KHÔNG thu thập hay lưu trữ dữ liệu âm thanh/giọng nói của bạn. Tính năng lưu trữ bản ghi âm chỉ được kích hoạt riêng cho các tài khoản Học viên nội bộ (có mã xác thực) để phục vụ việc phân tích lộ trình học cá nhân.</p>
+            <p><strong>Lưu ý về quyền riêng tư:</strong> Chế độ chơi tự do (Public Mode) chỉ giữ bản ghi âm tạm thời trong bộ nhớ phiên chơi khi bạn nhấn micro để có thể nghe lại. Game không tải bản ghi lên Google Sheets/Drive; bản ghi sẽ mất khi tải lại hoặc đóng trang. Tùy trình duyệt, âm thanh dùng để nhận diện giọng nói có thể được gửi tới dịch vụ nhận diện trực tuyến. Tính năng lưu trữ bản ghi âm lâu dài chỉ được kích hoạt riêng cho tài khoản Học viên nội bộ (có mã xác thực) để phân tích lộ trình học cá nhân.</p>
             <p>© 2026 Speech Reflex Game. Developed by Vy. All rights reserved.</p>
         </footer>
     </div>
@@ -1590,13 +1520,12 @@
         ].map(sheetName => ({
             title: sheetName,
             sheetName,
-            description: `Câu hỏi và đáp án được lấy từ tab “${sheetName}” trong Google Sheet.`,
             questions: null,
             loadPromise: null
         }));
 
         let currentQuestionFailCount = 0;   // Đếm số lần đọc sai của câu hiện tại
-        let currentQuestionWrongSTT = [];   // Lưu các chuỗi máy nghe nhầm
+        let currentQuestionWrongAttempts = []; // Lưu các lần trả lời sai bằng mic hoặc bàn phím
         let timerInterval = null; // Biến lưu bộ đếm thời gian
         let timeRemaining = 0;    // Số giây còn lại
         let vocabList = [];
@@ -1610,6 +1539,7 @@
         let isKeywordOnlyMode = true;  // true: Chỉ cần nói có chứa từ khóa (word), false: Phải nói khớp đúng cả câu ngữ cảnh (context)
         let rawVocabListFromSheets = [];
         let gameMode = 'guided';
+        let selectedBuiltInQuestionSet = null;
         let feedbackSubmitting = false;
 
         // Web Speech API & MediaRecorder Variables
@@ -1620,7 +1550,7 @@
         let mediaStream = null;
         let currentAudioBlob = null;
         let currentAudioUrl = null;
-        let lastAudioBase64 = null; // Base64 của bản thu mới nhất để gửi lên Drive
+        let lastAudioRecording = null; // Bản ghi hiện tại; Public Mode giữ URL tạm trong phiên, học viên nội bộ có thêm Base64 để đồng bộ.
 
         // ==========================================
         // 2. KHỞI TẠO WEB SPEECH API & MEDIA RECORDER
@@ -1696,7 +1626,7 @@
 
         async function startMediaRecorder() {
             try {
-                if (!isAuthorizedGuidedStudent()) return;
+                if (!shouldRecordAudioLocally()) return;
                 audioChunks = [];
                 if (!mediaStream || !mediaStream.active) {
                     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1715,6 +1645,11 @@
                         const mimeType = mediaRecorder.mimeType || 'audio/webm';
                         currentAudioBlob = new Blob(audioChunks, { type: mimeType });
                         currentAudioUrl = URL.createObjectURL(currentAudioBlob);
+                        const playbackRecording = {
+                            blobUrl: currentAudioUrl,
+                            mimeType
+                        };
+                        lastAudioRecording = playbackRecording;
 
                         // Hiển thị nút nghe lại tại chỗ
                         const playbackContainer = document.getElementById('playback-container');
@@ -1724,16 +1659,22 @@
                             playbackContainer.style.display = 'flex';
                         }
 
-                        // Chuyển sang Base64 để gửi lên Google Drive
+                        // Public Mode chỉ giữ bản ghi trong bộ nhớ của phiên chơi.
+                        if (!isAuthorizedGuidedStudent()) {
+                            if (mediaRecorderStopResolve) {
+                                mediaRecorderStopResolve({ ...playbackRecording });
+                                mediaRecorderStopResolve = null;
+                            }
+                            return;
+                        }
+
+                        // Chỉ tài khoản học viên nội bộ mới chuyển sang Base64 để đồng bộ Google Drive.
                         const reader = new FileReader();
                         reader.onloadend = function () {
                             const base64Data = reader.result.split(',')[1];
-                            lastAudioBase64 = {
-                                base64: base64Data,
-                                mimeType: mimeType
-                            };
+                            lastAudioRecording = { ...playbackRecording, base64: base64Data };
                             if (mediaRecorderStopResolve) {
-                                mediaRecorderStopResolve(lastAudioBase64);
+                                mediaRecorderStopResolve({ ...lastAudioRecording });
                                 mediaRecorderStopResolve = null;
                             }
                         };
@@ -1757,8 +1698,8 @@
                 if (mediaRecorder && mediaRecorder.state === 'recording') {
                     mediaRecorderStopResolve = resolve;
                     mediaRecorder.stop();
-                } else if (lastAudioBase64) {
-                    resolve(lastAudioBase64);
+                } else if (lastAudioRecording) {
+                    resolve(lastAudioRecording);
                 } else {
                     resolve(null);
                 }
@@ -1786,7 +1727,7 @@
                 // Xóa input cũ khi bắt đầu nói câu mới
                 document.getElementById('manual-input').value = '';
                 document.getElementById('feedback-area').className = 'feedback';
-                lastAudioBase64 = null;
+                lastAudioRecording = null;
                 resetPlaybackUI();
 
                 if (isIOS()) {
@@ -1803,12 +1744,11 @@
                         return;
                     }
                     // Chỉ ghi âm cho chế độ có hướng dẫn để phát lại/lưu cùng kết quả.
-                    if (isAuthorizedGuidedStudent()) {
+                    if (shouldRecordAudioLocally()) {
                         setTimeout(() => { startMediaRecorder(); }, 500);
                     }
                 } else {
-                    // Không tạo bản ghi trong chế độ tự do.
-                    if (isAuthorizedGuidedStudent()) await startMediaRecorder();
+                    if (shouldRecordAudioLocally()) await startMediaRecorder();
                     try {
                         recognition.start();
                     } catch (e) {
@@ -1861,7 +1801,7 @@
             }
             currentAudioBlob = null;
             currentAudioUrl = null;
-            lastAudioBase64 = null;
+            lastAudioRecording = null;
         }
 
         function resetMicUI() {
@@ -1906,9 +1846,9 @@
             gameMode = mode;
             document.getElementById('game-config-bar').style.display = 'flex';
             document.getElementById('keyword-config-item').style.display = mode === 'free' ? 'none' : 'flex';
-            if (mode === 'free') renderBuiltInQuestionSetPreview();
-            if (mode === 'free' && document.getElementById('free-qa-list').children.length === 0) {
-                addFreeQaRow();
+            if (mode === 'free') {
+                renderBuiltInQuestionSets();
+                updateFreeWordCount();
             }
             switchScreen(mode === 'free' ? 'free-setup-screen' : 'setup-screen');
         }
@@ -1921,6 +1861,10 @@
             const input = document.getElementById('student-name');
             const enteredId = input ? input.value : studentName;
             return gameMode !== 'free' && GUIDED_STUDENT_IDS.has(normalizeStudentId(enteredId));
+        }
+
+        function shouldRecordAudioLocally() {
+            return gameMode === 'free' || isAuthorizedGuidedStudent();
         }
 
         function updateGuidedStartAvailability() {
@@ -1937,28 +1881,36 @@
             status.style.color = isAllowed ? 'var(--success)' : (studentId ? 'var(--error)' : '#6b7280');
         }
 
-        function renderBuiltInQuestionSetPreview() {
+        function renderBuiltInQuestionSets() {
             const container = document.getElementById('built-in-question-sets');
+            selectedBuiltInQuestionSet = null;
             container.replaceChildren();
             BUILT_IN_QUESTION_SETS.forEach((questionSet, setIndex) => {
-                const details = document.createElement('details');
-                details.className = 'question-set-card';
-
-                const summary = document.createElement('summary');
-                summary.textContent = questionSet.title;
-                details.appendChild(summary);
-
-                const content = document.createElement('div');
-                content.className = 'question-set-content';
-                details.appendChild(content);
-                details.addEventListener('toggle', () => {
-                    if (details.open) loadBuiltInQuestionSetPreview(setIndex, content);
-                });
-                container.appendChild(details);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'question-set-card';
+                button.textContent = questionSet.title;
+                button.setAttribute('aria-pressed', 'false');
+                button.addEventListener('click', () => selectBuiltInQuestionSet(setIndex));
+                container.appendChild(button);
             });
         }
 
-        async function loadBuiltInQuestionSetPreview(setIndex, content) {
+        function selectBuiltInQuestionSet(setIndex) {
+            selectedBuiltInQuestionSet = setIndex;
+            document.querySelectorAll('#built-in-question-sets .question-set-card').forEach((button, index) => {
+                button.setAttribute('aria-pressed', String(index === setIndex));
+            });
+        }
+
+        function clearBuiltInQuestionSetSelection() {
+            selectedBuiltInQuestionSet = null;
+            document.querySelectorAll('#built-in-question-sets .question-set-card').forEach(button => {
+                button.setAttribute('aria-pressed', 'false');
+            });
+        }
+
+        async function getBuiltInQuestionSetQuestions(setIndex) {
             const questionSet = BUILT_IN_QUESTION_SETS[setIndex];
             if (!questionSet.loadPromise) {
                 const apiUrl = new URL(WEB_APP_URL);
@@ -1978,68 +1930,21 @@
                         .slice(0, 20));
             }
 
-            content.replaceChildren();
-            const status = document.createElement('p');
-            status.className = 'question-set-description';
-            status.textContent = 'Đang tải câu hỏi từ Google Sheet…';
-            content.appendChild(status);
-
             try {
                 questionSet.questions = await questionSet.loadPromise;
-                if (questionSet.questions.length === 0) {
-                    status.textContent = `Tab “${questionSet.sheetName}” chưa có câu hỏi hợp lệ (cần có câu hỏi ở cột context và đáp án ở cột word).`;
-                    return;
-                }
-
-                content.replaceChildren();
-                const description = document.createElement('p');
-                description.className = 'question-set-description';
-                description.textContent = questionSet.description;
-                content.appendChild(description);
-
-                const preview = document.createElement('ul');
-                preview.className = 'question-set-preview';
-                questionSet.questions.forEach((item, index) => {
-                    const entry = document.createElement('li');
-                    const question = document.createElement('strong');
-                    question.textContent = `${index + 1}. ${item.question}`;
-                    const answer = document.createElement('span');
-                    answer.className = 'preview-answer';
-                    answer.textContent = `Đáp án: ${item.answer}`;
-                    entry.append(question, document.createElement('br'), answer);
-                    preview.appendChild(entry);
-                });
-                content.appendChild(preview);
-
-                const useButton = document.createElement('button');
-                useButton.type = 'button';
-                useButton.className = 'btn btn-primary';
-                useButton.textContent = 'Dùng bộ câu hỏi này';
-                useButton.addEventListener('click', () => applyBuiltInQuestionSet(setIndex));
-                content.appendChild(useButton);
             } catch (error) {
                 questionSet.loadPromise = null;
-                status.textContent = `Không tải được tab “${questionSet.sheetName}”. Hãy thử mở lại hộp sau.`;
-                console.error('Lỗi tải bộ câu hỏi:', error);
+                throw error;
             }
-        }
-
-        function applyBuiltInQuestionSet(setIndex) {
-            const questionSet = BUILT_IN_QUESTION_SETS[setIndex];
-            if (!questionSet.questions || questionSet.questions.length === 0) return;
-            const list = document.getElementById('free-qa-list');
-            list.replaceChildren();
-            questionSet.questions.forEach(item => {
-                addFreeQaRow();
-                const row = list.lastElementChild;
-                row.querySelector('.free-question').value = item.question;
-                row.querySelector('.free-answer').value = item.answer;
-            });
-            updateFreeWordCount();
-            list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (questionSet.questions.length === 0) {
+                questionSet.loadPromise = null;
+                throw new Error(`Tab “${questionSet.sheetName}” chưa có câu hỏi hợp lệ.`);
+            }
+            return questionSet.questions;
         }
 
         function addFreeQaRow() {
+            clearBuiltInQuestionSetSelection();
             const list = document.getElementById('free-qa-list');
             if (list.children.length >= 20) {
                 alert("Bạn chỉ có thể tạo tối đa 20 câu hỏi!");
@@ -2064,7 +1969,10 @@
                 row.remove();
                 updateFreeWordCount();
             });
-            row.querySelectorAll('input').forEach(input => input.addEventListener('input', updateFreeWordCount));
+            row.querySelectorAll('input').forEach(input => input.addEventListener('input', () => {
+                clearBuiltInQuestionSetSelection();
+                updateFreeWordCount();
+            }));
             list.appendChild(row);
             updateFreeWordCount();
         }
@@ -2257,21 +2165,35 @@
         }
 
         async function startFreeGame() {
-            const pairs = [...document.querySelectorAll('#free-qa-list .qa-entry')].map(row => ({
-                question: row.querySelector('.free-question').value.trim(),
-                answer: row.querySelector('.free-answer').value.trim()
-            }));
+            let pairs = [];
+            if (selectedBuiltInQuestionSet !== null) {
+                showLoading("Đang tải bộ câu hỏi...");
+                try {
+                    pairs = await getBuiltInQuestionSetQuestions(selectedBuiltInQuestionSet);
+                } catch (error) {
+                    hideLoading();
+                    alert(`Không tải được bộ câu hỏi. ${error.message}`);
+                    return;
+                }
+            } else {
+                pairs = [...document.querySelectorAll('#free-qa-list .qa-entry')].map(row => ({
+                    question: row.querySelector('.free-question').value.trim(),
+                    answer: row.querySelector('.free-answer').value.trim()
+                }));
 
-            if (pairs.length === 0) {
-                alert("Vui lòng thêm ít nhất 1 câu hỏi và câu trả lời!");
-                return;
-            }
-            if (pairs.some(pair => !pair.question || !pair.answer)) {
-                alert("Vui lòng nhập đầy đủ câu hỏi và câu trả lời cho từng dòng!");
-                return;
+                if (pairs.length === 0) {
+                    alert("Vui lòng chọn một bộ câu hỏi hoặc thêm ít nhất 1 cặp câu hỏi và câu trả lời!");
+                    return;
+                }
+                if (pairs.some(pair => !pair.question || !pair.answer)) {
+                    alert("Vui lòng nhập đầy đủ câu hỏi và câu trả lời cho từng dòng!");
+                    return;
+                }
             }
 
-            currentSheetName = 'TuDo';
+            currentSheetName = selectedBuiltInQuestionSet === null
+                ? 'TuDo'
+                : BUILT_IN_QUESTION_SETS[selectedBuiltInQuestionSet].sheetName;
             rawVocabListFromSheets = pairs.map(pair => ({
                 word: pair.answer,
                 context: pair.question,
@@ -2310,7 +2232,6 @@
 
             document.getElementById('speaker-btn').innerText = gameMode === 'free' ? '🔊 Nghe câu hỏi' : '🔊 Nghe đọc câu';
             document.getElementById('free-game-help').style.display = gameMode === 'free' ? 'block' : 'none';
-            document.getElementById('free-mic-privacy-note').style.display = gameMode === 'free' ? 'block' : 'none';
 
             // Cập nhật Gợi ý
             document.getElementById('hint-ipa').innerText = currentVocab.ipa ? `/${currentVocab.ipa}/` : '';
@@ -2327,7 +2248,7 @@
             manualInput.classList.remove('input-wrong');
 
             currentQuestionFailCount = 0;
-            currentQuestionWrongSTT = [];
+            currentQuestionWrongAttempts = [];
 
             document.getElementById('mic-btn').style.pointerEvents = 'auto';
             document.getElementById('mic-status').innerText = gameMode === 'free'
@@ -2488,11 +2409,11 @@
                 // Dừng ghi âm và chờ lấy dữ liệu audio Base64
                 let audioRecordData = null;
                 const audioResult = await stopMediaRecorder();
-                
-                if (audioResult && audioResult.base64) {
+
+                if (inputType === 'speech' && audioResult) {
                     audioRecordData = { ...audioResult };
-                } else if (lastAudioBase64) {
-                    audioRecordData = { ...lastAudioBase64 };
+                } else if (inputType !== 'speech') {
+                    resetPlaybackUI();
                 }
 
                 // LƯU CHI TIẾT: Chế độ nào thì lưu "Từ chuẩn" theo chế độ đó
@@ -2502,12 +2423,12 @@
                     studentAnswer: userAnswer + (inputType === 'speech' ? " 🎙️" : " ✍️"),
                     isCorrect: true,
                     points: earnedScore,
-                    wrongAttempts: currentQuestionWrongSTT.length > 0 ? currentQuestionWrongSTT.join(" | ") : "Không có",
+                    wrongAttempts: currentQuestionWrongAttempts.length > 0 ? currentQuestionWrongAttempts.join(" | ") : "Không có",
                     audioData: audioRecordData
                 });
 
                 currentQuestionFailCount = 0;
-                currentQuestionWrongSTT = [];
+                currentQuestionWrongAttempts = [];
 
                 const nextBtn = document.getElementById('next-btn');
                 nextBtn.style.display = 'flex';
@@ -2516,9 +2437,9 @@
             } else {
                 // SAI
                 isFirstAttempt = false;
+                currentQuestionWrongAttempts.push(`${userAnswer.trim()} (${inputType === 'speech' ? 'Mic' : 'Gõ'})`);
                 if (inputType === 'speech') {
                     currentQuestionFailCount++;
-                    currentQuestionWrongSTT.push(userAnswer);
 
                     if (currentQuestionFailCount >= 3) {
                         const micStatus = document.getElementById('mic-status');
@@ -2556,14 +2477,21 @@
         async function endGame() {
             if (timerInterval) clearInterval(timerInterval);
             switchScreen('result-screen');
-            document.getElementById('final-score').innerText = score;
+            const maxScore = vocabList.length * 10;
+            const scorePercent = maxScore ? Math.round(score / maxScore * 100) : 0;
+            const rating = scorePercent >= 90 ? 'Xuất sắc'
+                : scorePercent >= 80 ? 'Tốt'
+                    : scorePercent >= 65 ? 'Khá'
+                        : scorePercent >= 50 ? 'Đạt' : 'Cần cố gắng';
+            document.getElementById('final-score').innerText = `${score} / ${maxScore}`;
+            document.getElementById('result-rating').innerText = `Xếp loại: ${rating} · ${scorePercent}%`;
 
             // Render bảng chi tiết
             const tbody = document.getElementById('detail-table-body');
             tbody.innerHTML = '';
             detailedAnswers.forEach((item, idx) => {
                 const tr = document.createElement('tr');
-                const hasAudio = item.audioData && item.audioData.base64;
+                const hasAudio = item.audioData && (item.audioData.blobUrl || item.audioData.base64);
                 const audioBtnHtml = hasAudio
                     ? `<button class="btn-playback" style="padding: 4px 10px; font-size: 0.82rem;" onclick="playResultAudio(${idx})">▶️ Nghe</button>`
                     : `<span style="color: #9ca3af; font-size: 0.8rem;">-</span>`;
@@ -2573,6 +2501,8 @@
                 targetCell.textContent = item.targetWord;
                 const answerCell = document.createElement('td');
                 answerCell.textContent = item.studentAnswer;
+                const attemptsCell = document.createElement('td');
+                attemptsCell.textContent = item.wrongAttempts || 'Không có';
                 const pointsCell = document.createElement('td');
                 const points = document.createElement('b');
                 points.textContent = `+${item.points}`;
@@ -2581,16 +2511,14 @@
                 audioCell.style.textAlign = 'center';
                 audioCell.className = 'result-audio-cell';
                 audioCell.innerHTML = audioBtnHtml;
-                tr.append(targetCell, answerCell, pointsCell, audioCell);
+                tr.append(targetCell, answerCell, attemptsCell, pointsCell, audioCell);
                 tbody.appendChild(tr);
             });
 
             if (gameMode === 'free') {
                 document.getElementById('result-student-name').innerText = 'Chế độ tự do · kết quả chỉ hiển thị trong phiên này.';
-                document.getElementById('save-status').innerText = 'Điểm chỉ hiển thị trong phiên này; game không lưu câu trả lời hay bản ghi âm.';
+                document.getElementById('save-status').innerText = 'Điểm, câu trả lời và bản ghi âm (nếu có) chỉ được giữ tạm trong phiên này; game không gửi dữ liệu lên Google Sheets/Drive.';
                 document.getElementById('save-status').style.color = '#6b7280';
-                document.getElementById('result-audio-heading').style.display = 'none';
-                document.querySelectorAll('.result-audio-cell').forEach(cell => cell.style.display = 'none');
             } else {
                 document.getElementById('result-student-name').innerText = `Học sinh: ${studentName}`;
                 document.getElementById('result-audio-heading').style.display = '';
@@ -2600,8 +2528,13 @@
 
         function playResultAudio(index) {
             const item = detailedAnswers[index];
-            if (!item || !item.audioData || !item.audioData.base64) return;
-            const audio = new Audio("data:" + (item.audioData.mimeType || "audio/webm") + ";base64," + item.audioData.base64);
+            if (!item || !item.audioData) return;
+            const audioSource = item.audioData.blobUrl
+                || (item.audioData.base64
+                    ? "data:" + (item.audioData.mimeType || "audio/webm") + ";base64," + item.audioData.base64
+                    : null);
+            if (!audioSource) return;
+            const audio = new Audio(audioSource);
             audio.play().catch(e => console.warn("Lỗi phát audio:", e));
         }
 
