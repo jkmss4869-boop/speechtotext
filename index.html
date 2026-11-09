@@ -55,6 +55,289 @@
             position: relative;
         }
 
+        .feedback-panel {
+            position: fixed;
+            z-index: 31;
+            right: 24px;
+            bottom: 88px;
+            width: min(400px, calc(100vw - 32px));
+            max-height: min(80vh, 760px);
+            overflow-y: auto;
+            padding: 22px;
+            border: 1px solid #e7defa;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 16px 44px rgba(43, 27, 77, 0.22);
+            transform: translateY(8px) scale(0.98);
+            transform-origin: bottom right;
+            opacity: 0;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+
+        .feedback-panel.open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .feedback-panel[hidden] {
+            display: none;
+        }
+
+        .feedback-panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 7px;
+        }
+
+        .feedback-panel h2 {
+            margin-bottom: 0;
+            color: var(--primary-dark);
+            font-size: 1.25rem;
+        }
+
+        .feedback-close {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 50%;
+            background: #f3f0f8;
+            color: #625778;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        .feedback-close:hover {
+            background: #e9e3f5;
+        }
+
+        .feedback-launcher {
+            position: fixed;
+            z-index: 30;
+            right: 24px;
+            bottom: 88px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            min-height: 54px;
+            padding: 0 20px;
+            border: 0;
+            border-radius: 999px;
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(109, 40, 217, 0.32);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tutoring-launcher {
+            position: fixed;
+            z-index: 30;
+            right: 24px;
+            bottom: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 54px;
+            padding: 0 20px;
+            border: 0;
+            border-radius: 999px;
+            background: #0f766e;
+            color: #fff;
+            text-decoration: none;
+            box-shadow: 0 8px 24px rgba(15, 118, 110, 0.28);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tutoring-launcher:hover {
+            transform: translateY(-2px);
+            background: #115e59;
+            box-shadow: 0 11px 28px rgba(15, 118, 110, 0.34);
+        }
+
+        .feedback-launcher:hover {
+            transform: translateY(-2px);
+            background: var(--primary-dark);
+            box-shadow: 0 11px 28px rgba(109, 40, 217, 0.38);
+        }
+
+        .feedback-launcher:focus-visible,
+        .tutoring-launcher:focus-visible,
+        .feedback-close:focus-visible {
+            outline: 3px solid #c4b5fd;
+            outline-offset: 3px;
+        }
+
+        .feedback-panel-intro {
+            margin-bottom: 17px;
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .feedback-disclaimer {
+            margin-top: 20px;
+            padding: 15px 16px;
+            border: 1px solid #f2dfb6;
+            border-radius: 14px;
+            background: #fffaf0;
+            color: #62563f;
+            font-size: 0.84rem;
+            line-height: 1.55;
+        }
+
+        .feedback-disclaimer strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #775411;
+        }
+
+        .feedback-disclaimer ul {
+            padding-left: 18px;
+        }
+
+        .feedback-disclaimer li + li {
+            margin-top: 5px;
+        }
+
+        .feedback-panel .form-group {
+            margin-bottom: 14px;
+        }
+
+        .feedback-panel label {
+            display: block;
+            margin-bottom: 6px;
+            color: #4b5563;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .feedback-panel select,
+        .feedback-panel textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd6e8;
+            border-radius: 10px;
+            background: #fff;
+            color: #374151;
+            font: inherit;
+            font-size: 0.9rem;
+        }
+
+        .feedback-panel textarea {
+            min-height: 130px;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
+        .feedback-panel select:focus,
+        .feedback-panel textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .feedback-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 5px;
+            color: #7c7c8a;
+            font-size: 0.76rem;
+        }
+
+        .feedback-privacy {
+            margin: 0 0 14px;
+            color: #6b7280;
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .feedback-submit {
+            padding: 11px 14px;
+            font-size: 1rem;
+        }
+
+        .feedback-submit:disabled {
+            cursor: wait;
+            opacity: 0.7;
+            transform: none;
+        }
+
+        .feedback-status {
+            min-height: 20px;
+            margin-top: 11px;
+            color: #4b5563;
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
+
+        .feedback-honeypot {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .in-app-browser-notice {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(31, 41, 55, 0.58);
+        }
+
+        .in-app-browser-notice[hidden] {
+            display: none;
+        }
+
+        .in-app-browser-dialog {
+            width: min(440px, 100%);
+            padding: 26px;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 18px 50px rgba(31, 41, 55, 0.3);
+        }
+
+        .in-app-browser-dialog h2 {
+            margin-bottom: 10px;
+            color: var(--primary-dark);
+            font-size: 1.35rem;
+        }
+
+        .in-app-browser-dialog p {
+            margin-bottom: 12px;
+            color: #4b5563;
+            line-height: 1.55;
+        }
+
+        .in-app-browser-dialog ol {
+            margin: 0 0 18px;
+            padding-left: 22px;
+            color: #374151;
+            line-height: 1.55;
+        }
+
+        .in-app-browser-dialog li + li {
+            margin-top: 5px;
+        }
+
+        .in-app-browser-dialog .btn {
+            min-height: 48px;
+        }
+
         /* --- SCREENS --- */
         .screen {
             display: none;
@@ -142,6 +425,14 @@
         .btn-primary:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
+        }
+
+        .btn:disabled,
+        .btn:disabled:hover {
+            cursor: not-allowed;
+            opacity: 0.55;
+            box-shadow: none;
+            transform: none;
         }
 
         .btn-secondary {
@@ -469,6 +760,28 @@
                 padding: 20px 15px;
             }
 
+            .feedback-panel {
+                right: 12px;
+                bottom: 80px;
+                width: calc(100vw - 24px);
+                max-height: calc(100vh - 104px);
+                padding: 18px;
+            }
+
+            .feedback-launcher {
+                right: 16px;
+                bottom: 78px;
+                min-height: 50px;
+                padding: 0 17px;
+            }
+
+            .tutoring-launcher {
+                right: 16px;
+                bottom: 16px;
+                min-height: 50px;
+                padding: 0 17px;
+            }
+
             .context-box {
                 font-size: 1.1rem;
                 padding: 15px;
@@ -588,14 +901,328 @@
             font-weight: 800 !important;
             border-color: #ef4444 !important;
         }
+
+        .mode-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .mode-card {
+            min-height: 150px;
+            padding: 20px;
+            border: 2px solid var(--primary-light);
+            border-radius: 16px;
+            background: #faf8ff;
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.14);
+        }
+
+        .mode-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--primary-dark);
+            font-size: 1.15rem;
+        }
+
+        .mode-card span {
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .qa-entry {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e9e5f4;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #ffffff 0%, #fbfaff 100%);
+            box-shadow: 0 3px 12px rgba(76, 29, 149, 0.05);
+        }
+
+        .qa-entry label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .qa-entry input {
+            width: 100%;
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 9px;
+            font: inherit;
+        }
+
+        .question-set-card {
+            min-width: 0;
+            border: 0;
+            border-radius: 14px;
+            background: transparent;
+        }
+
+        .question-set-card summary {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 88px;
+            padding: 13px 19px 13px 13px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: #fff;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.25;
+            cursor: pointer;
+            list-style: none;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(109, 40, 217, 0.28);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #built-in-question-sets .question-set-card:nth-child(1) summary {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            box-shadow: 0 8px 20px rgba(109, 40, 217, 0.28);
+        }
+
+        #built-in-question-sets .question-set-card:nth-child(2) summary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 8px 20px rgba(29, 78, 216, 0.26);
+        }
+
+        #built-in-question-sets .question-set-card:nth-child(3) summary {
+            background: linear-gradient(135deg, #14b8a6, #0f766e);
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.26);
+        }
+
+        #built-in-question-sets .question-set-card:nth-child(4) summary {
+            background: linear-gradient(135deg, #fb923c, #c2410c);
+            box-shadow: 0 8px 20px rgba(194, 65, 12, 0.24);
+        }
+
+        #built-in-question-sets .question-set-card:nth-child(5) summary {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            box-shadow: 0 8px 20px rgba(190, 24, 93, 0.25);
+        }
+
+        .question-set-card summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .question-set-card summary::before {
+            content: "📚";
+            flex: 0 0 auto;
+            margin-right: 6px;
+        }
+
+        .question-set-card summary::after {
+            content: "＋";
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 0.9rem;
+        }
+
+        .question-set-card summary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 11px 26px rgba(109, 40, 217, 0.34);
+        }
+
+        .question-set-card[open] summary {
+            border-radius: 14px 14px 0 0;
+        }
+
+        .question-set-card[open] summary::after {
+            content: "−";
+        }
+
+        .question-set-content {
+            grid-column: 1 / -1;
+            padding: 14px;
+            border: 1px solid #e9e5f4;
+            border-radius: 14px;
+            background: #faf8ff;
+        }
+
+        #built-in-question-sets {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        #built-in-question-sets .question-set-card[open] {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 520px) {
+            #built-in-question-sets {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+        }
+
+        .question-set-description {
+            margin-bottom: 13px;
+            color: #6b7280;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .question-set-preview {
+            display: grid;
+            gap: 8px;
+            margin: 0 0 14px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .question-set-preview li {
+            padding: 10px 12px;
+            border: 1px solid #e9e5f4;
+            border-radius: 11px;
+            background: #fff;
+            color: #4b5563;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .question-set-preview strong {
+            color: #4b5563;
+        }
+
+        .question-set-preview .preview-answer {
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .free-steps,
+        .privacy-note {
+            padding: 15px 17px;
+            margin: 0 0 16px;
+            border-radius: 14px;
+            line-height: 1.55;
+            font-size: 0.9rem;
+        }
+
+        .free-steps {
+            background: #f7f5ff;
+            border: 1px solid #e5defa;
+            color: #4b5563;
+        }
+
+        .free-steps strong,
+        .privacy-note strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--primary-dark);
+        }
+
+        .free-steps ol {
+            padding-left: 22px;
+        }
+
+        .free-steps li + li {
+            margin-top: 3px;
+        }
+
+        .site-footer {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #eee8fa;
+            color: #6b7280;
+            font-size: 0.82rem;
+            line-height: 1.55;
+            text-align: center;
+        }
+
+        .site-footer strong {
+            color: var(--primary-dark);
+        }
+
+        .privacy-note {
+            background: #f0fdfa;
+            border: 1px solid #bcece4;
+            color: #3f5e5a;
+        }
+
+        .game-help {
+            padding: 11px 14px;
+            margin: -4px 0 15px;
+            border-radius: 12px;
+            background: #f7f5ff;
+            color: #5b4b7a;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .mic-privacy-note {
+            max-width: 440px;
+            margin: 12px auto 0;
+            padding: 11px 14px;
+            border: 1px solid #bcece4;
+            border-radius: 12px;
+            background: #f0fdfa;
+            color: #3f5e5a;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .qa-remove {
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 9px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media (max-width: 520px) {
+            .qa-entry {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .qa-remove {
+                grid-column: 1 / -1;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div id="in-app-browser-notice" class="in-app-browser-notice" role="alertdialog"
+        aria-modal="true" aria-labelledby="in-app-browser-title" aria-describedby="in-app-browser-description" hidden>
+        <div class="in-app-browser-dialog">
+            <h2 id="in-app-browser-title">Mở bằng trình duyệt ngoài</h2>
+            <p id="in-app-browser-description">Bạn đang dùng trình duyệt tích hợp của Facebook hoặc Zalo. Trình duyệt này có thể hạn chế quyền micro và nhận diện giọng nói.</p>
+            <ol>
+                <li>Mở menu <strong>⋯</strong> của ứng dụng.</li>
+                <li>Chọn <strong>Mở bằng trình duyệt ngoài</strong> (Chrome hoặc Safari).</li>
+            </ol>
+            <button id="in-app-browser-dismiss" class="btn btn-primary" type="button">Đã hiểu</button>
+        </div>
+    </div>
+
 
     <div class="game-container">
-        <div class="game-config-bar" style="
-    display: flex; 
+        <div id="game-config-bar" class="game-config-bar" style="
+    display: none;
     flex-wrap: wrap; 
     align-items: center; 
     justify-content: center; 
@@ -651,7 +1278,7 @@
 
             <span style="color: #cbd5e1; font-weight: bold;">|</span>
 
-            <div class="config-item" style="display: flex; align-items: center; gap: 6px;">
+            <div id="keyword-config-item" class="config-item" style="display: flex; align-items: center; gap: 6px;">
                 <label for="keyword-select" style="font-weight: 600; color: #4c1d95; font-size: 0.95rem;">🎯 Chấm
                     điểm:</label>
                 <select id="keyword-select" onchange="toggleKeywordMode(this.value === 'true')" style="
@@ -676,25 +1303,69 @@
             <p id="loading-text" style="font-weight: 600; color: var(--primary-dark);">Đang tải dữ liệu...</p>
         </div>
 
-        <div id="setup-screen" class="screen active">
+        <div id="mode-screen" class="screen active">
+            <h1 class="title">🎙️ Speech Reflex Game</h1>
+            <p class="subtitle">Chọn cách bạn muốn luyện tập</p>
+            <div class="mode-options">
+                <button class="mode-card" onclick="selectGameMode('guided')">
+                    <strong>📘 Học có hướng dẫn</strong>
+                    <span>Bạn cần giáo viên đồng hành phân tích và sửa lỗi phát âm sau mỗi lần luyện tập? Đăng ký học 1 kèm 1.</span>
+                </button>
+                <button class="mode-card" onclick="selectGameMode('free')">
+                    <strong>✨ Tự do</strong>
+                    <span>Luyện theo bài học và danh sách từ có sẵn hoặc tự tạo tối đa 20 cặp câu hỏi và câu trả lời.</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="setup-screen" class="screen">
             <h1 class="title">🎙️ Speech Reflex Game</h1>
             <p class="subtitle">Luyện phản xạ phát âm tiếng Anh chuẩn xác</p>
 
             <div class="form-group">
-                <label for="student-name">Họ và tên của bạn:</label>
+                <label for="student-name">ID học sinh:</label>
                 <input type="text" id="student-name" class="form-control"
-                    placeholder="Nhập họ tên (ví dụ: Nguyễn Văn A)..." required>
+                    placeholder="Nhập ID học sinh..." oninput="updateGuidedStartAvailability()"
+                    autocomplete="off" required>
+                <small id="student-id-status" aria-live="polite" style="display:block; margin-top:6px; color:#6b7280;">
+                    Nhập ID học sinh được cấp để bắt đầu.
+                </small>
             </div>
 
             <div class="form-group">
-                <label for="sheet-name">Chọn bài học (Sheet Name):</label>
-                <input type="text" id="sheet-name" class="form-control" placeholder="Ví dụ: Unit1, Vocab_01..."
+                <label for="sheet-name">Nhập ID bài học:</label>
+                <input type="text" id="sheet-name" class="form-control" placeholder="Nhập ID bài học..."
                     value="Unit1">
             </div>
 
-            <button class="btn btn-primary" onclick="startGame()">
+            <button id="guided-start-button" class="btn btn-primary" onclick="startGame()" disabled>
                 <span>Bắt đầu luyện tập</span> 🚀
             </button>
+            <button class="btn btn-secondary" onclick="switchScreen('mode-screen')">← Chọn chế độ khác</button>
+        </div>
+
+        <div id="free-setup-screen" class="screen">
+            <h1 class="title">✨ Chế độ tự do</h1>
+            <p class="subtitle">Chọn bộ có sẵn hoặc tự tạo tối đa 20 câu hỏi và câu trả lời.</p>
+            <div class="free-steps">
+                <strong>Cách chơi</strong>
+                <ol>
+                    <li>Xem trước bộ câu hỏi có sẵn hoặc nhập câu hỏi và câu trả lời của bạn.</li>
+                    <li>Bắt đầu chơi, rồi trả lời bằng mic hoặc bàn phím.</li>
+                    <li>Khi game chấm xong, bấm “Câu tiếp theo”.</li>
+                </ol>
+            </div>
+            <div id="built-in-question-sets" aria-label="Các bộ câu hỏi có sẵn"></div>
+            <div class="form-group">
+                <label>Câu hỏi và câu trả lời <span style="font-weight:500; color:#6b7280;">(tối đa 20 cặp)</span></label>
+                <div id="free-qa-list"></div>
+                <button type="button" class="btn btn-secondary" style="margin-top:0;" onclick="addFreeQaRow()">＋ Thêm cặp câu hỏi</button>
+                <small id="free-word-count" style="display:block; margin-top:8px; color:#6b7280;">1/20 câu hỏi</small>
+            </div>
+            <button class="btn btn-primary" onclick="startFreeGame()">
+                <span>Bắt đầu chơi</span> 🚀
+            </button>
+            <button class="btn btn-secondary" onclick="switchScreen('mode-screen')">← Chọn chế độ khác</button>
         </div>
 
         <div id="game-screen" class="screen">
@@ -722,6 +1393,10 @@
                 I want to buy an ice cream... <span class="blank-space">[____]</span>
             </div>
 
+            <div id="free-game-help" class="game-help" style="display:none;">
+                Trả lời câu hỏi bằng mic hoặc gõ đáp án. Khi trả lời đúng, bấm “Câu tiếp theo”.
+            </div>
+
             <!-- NÚT ĐỌC CÂU HỎI (MỚI THÊM VÀO ĐÂY) -->
             <div style="text-align: center; margin-bottom: 20px;">
                 <button id="speaker-btn" class="btn-speaker" onclick="speakContext()" title="Nghe máy đọc mẫu">
@@ -729,7 +1404,7 @@
                 </button>
             </div>
 
-            <div class="hint-box">
+            <div id="hint-box" class="hint-box">
                 <span class="hint-tag hint-ipa" id="hint-ipa">/aɪs/</span>
                 <span class="hint-tag" id="hint-type">(n)</span>
                 <span class="hint-tag" id="hint-meaning">Kem</span>
@@ -740,6 +1415,10 @@
                     🎙️
                 </button>
                 <div class="mic-status" id="mic-status">Nhấn vào Micro và đọc từ cần điền</div>
+                <div id="free-mic-privacy-note" class="mic-privacy-note" style="display:none;">
+                    Mic chỉ bật khi bạn nhấn nút. Trình duyệt dùng giọng nói để nhận diện; tùy trình duyệt,
+                    âm thanh có thể được gửi tới dịch vụ nhận diện trực tuyến. Game không ghi âm hoặc gửi kết quả lên Google Sheets/Drive.
+                </div>
                 <div id="playback-container" class="playback-container">
                     <button id="playback-btn" class="btn-playback" onclick="playStudentRecording()" title="Nghe lại giọng nói của bạn">
                         ▶️ Nghe lại bạn vừa nói
@@ -777,7 +1456,7 @@
                                 <th>Từ chuẩn</th>
                                 <th>Bạn phát âm/gõ</th>
                                 <th>Điểm</th>
-                                <th>Nghe lại</th>
+                                <th id="result-audio-heading">Nghe lại</th>
                             </tr>
                         </thead>
                         <tbody id="detail-table-body">
@@ -792,8 +1471,80 @@
                 </button>
             </div>
         </div>
+        <footer class="site-footer">
+            <p><strong>Lưu ý về quyền riêng tư:</strong> Chế độ chơi tự do (Public Mode) KHÔNG thu thập hay lưu trữ dữ liệu âm thanh/giọng nói của bạn. Tính năng lưu trữ bản ghi âm chỉ được kích hoạt riêng cho các tài khoản Học viên nội bộ (có mã xác thực) để phục vụ việc phân tích lộ trình học cá nhân.</p>
+            <p>© 2026 Speech Reflex Game. Developed by Vy. All rights reserved.</p>
+        </footer>
     </div>
 
+    <aside id="feedback-panel" class="feedback-panel" role="dialog" aria-labelledby="feedback-title"
+        aria-modal="false" hidden>
+        <div class="feedback-panel-header">
+            <h2 id="feedback-title">💬 Góp ý phát triển game</h2>
+            <button class="feedback-close" type="button" onclick="toggleFeedbackPanel(false)" aria-label="Đóng góp ý">×</button>
+        </div>
+        <p class="feedback-panel-intro">Bạn muốn thêm tính năng, câu hỏi hay cải thiện điều gì? Gửi ý tưởng để game ngày càng hữu ích hơn.</p>
+        <form id="feedback-form" novalidate onsubmit="submitFeedback(event)">
+            <div class="form-group">
+                <label for="feedback-category">Chủ đề góp ý</label>
+                <select id="feedback-category" required>
+                    <option value="Tính năng">✨ Tính năng mới</option>
+                    <option value="Nội dung">📚 Nội dung học</option>
+                    <option value="Giao diện">🎨 Giao diện, trải nghiệm</option>
+                    <option value="Lỗi">🛠️ Báo lỗi</option>
+                    <option value="Khác">💡 Khác</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="feedback-message">Ý tưởng của bạn</label>
+                <textarea id="feedback-message" minlength="10" maxlength="2000" required
+                    placeholder="Mô tả ngắn gọn điều bạn muốn góp ý..." oninput="updateFeedbackCount()"></textarea>
+                <div class="feedback-meta">
+                    <span>Tối thiểu 10 ký tự</span>
+                    <span id="feedback-char-count">0/2000</span>
+                </div>
+            </div>
+            <div class="feedback-honeypot" aria-hidden="true">
+                <label for="feedback-website">Để trống ô này</label>
+                <input id="feedback-website" type="text" tabindex="-1" autocomplete="off">
+            </div>
+            <p class="feedback-privacy">Góp ý sẽ được gửi và lưu vào Google Sheets. Không cần ghi tên hay email; vui lòng đừng nhập thông tin cá nhân.</p>
+            <button id="feedback-submit" class="btn btn-primary feedback-submit" type="submit">Gửi góp ý <span>➤</span></button>
+            <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
+        </form>
+        <section class="feedback-disclaimer" aria-labelledby="disclaimer-title">
+            <strong id="disclaimer-title">ℹ️ Lưu ý sử dụng</strong>
+            <ul>
+                <li>Nhận diện giọng nói có thể sai tùy cách phát âm, thiết bị và môi trường; kết quả chỉ để luyện tập.</li>
+                <li>Tính năng nhận diện giọng nói dùng SpeechRecognition thuộc Web Speech API của trình duyệt. Tùy trình duyệt, âm thanh có thể được gửi tới dịch vụ nhận diện trực tuyến. Bạn có thể gõ đáp án thay cho mic.</li>
+                <li>Góp ý được lưu vào Google Sheets. Không gửi tên, email hoặc thông tin riêng tư trong nội dung góp ý.</li>
+            </ul>
+        </section>
+    </aside>
+    <button id="feedback-launcher" class="feedback-launcher" type="button" onclick="toggleFeedbackPanel()"
+        aria-controls="feedback-panel" aria-expanded="false" aria-haspopup="dialog">
+        <span aria-hidden="true">💬</span><span>Góp ý</span>
+    </button>
+    <a class="tutoring-launcher" href="https://www.facebook.com/nguyenthucphangivy/" target="_blank" rel="noopener noreferrer">
+        👩‍🏫 Đăng ký Học 1 kèm 1
+    </a>
+
+    <script>
+        (() => {
+            const userAgent = navigator.userAgent || '';
+            const isFacebookOrZalo = /FBAN|FBAV|FB_IAB|FBIOS|Zalo/i.test(userAgent);
+
+            if (!isFacebookOrZalo) return;
+
+            const notice = document.getElementById('in-app-browser-notice');
+            const dismissButton = document.getElementById('in-app-browser-dismiss');
+            notice.hidden = false;
+            dismissButton.addEventListener('click', () => {
+                notice.hidden = true;
+            });
+            dismissButton.focus();
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script>
         // 1. BẢNG CẤU HÌNH ĐA NGÔN NGỮ
@@ -827,6 +1578,23 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwWj2LaGytpJrAu1li5KWANikUwKz1h8E-UGpcb40xSs3_VGsfynBZK38IolZ6p5wExtg/exec";
         const DRIVE_FOLDER_ID = "1vfDqA0BPOnmSa2DsKm13XhAYKdKUXrod"; // Thư mục lưu audio trên Google Drive
 
+        // Danh sách ID được giao diện cho phép vào chế độ có hướng dẫn.
+        const GUIDED_STUDENT_IDS = new Set(['trinh', 'duong gia dat', 'minh']);
+
+        const BUILT_IN_QUESTION_SETS = [
+            'Thì Quá Khứ Đơn',
+            'Thì Hiện Tại Đơn',
+            'Danh Từ Số Ít Số Nhiều',
+            'Mệnh đề If Loại 1',
+            'Not Only But Also'
+        ].map(sheetName => ({
+            title: sheetName,
+            sheetName,
+            description: `Câu hỏi và đáp án được lấy từ tab “${sheetName}” trong Google Sheet.`,
+            questions: null,
+            loadPromise: null
+        }));
+
         let currentQuestionFailCount = 0;   // Đếm số lần đọc sai của câu hiện tại
         let currentQuestionWrongSTT = [];   // Lưu các chuỗi máy nghe nhầm
         let timerInterval = null; // Biến lưu bộ đếm thời gian
@@ -841,6 +1609,8 @@
         let isShuffleMode = true;      // true: Xáo trộn câu hỏi, false: Theo thứ tự Sheets
         let isKeywordOnlyMode = true;  // true: Chỉ cần nói có chứa từ khóa (word), false: Phải nói khớp đúng cả câu ngữ cảnh (context)
         let rawVocabListFromSheets = [];
+        let gameMode = 'guided';
+        let feedbackSubmitting = false;
 
         // Web Speech API & MediaRecorder Variables
         let recognition = null;
@@ -876,7 +1646,9 @@
                 const micStatus = document.getElementById('mic-status');
                 micBtn.classList.add('listening');
                 micBtn.innerHTML = "🔴";
-                micStatus.innerText = "Đang lắng nghe & ghi âm... Hãy nói!";
+                micStatus.innerText = gameMode === 'free'
+                    ? "Đang nhận diện giọng nói... Hãy nói!"
+                    : "Đang lắng nghe & ghi âm... Hãy nói!";
             };
 
             recognition.onerror = function (event) {
@@ -924,6 +1696,7 @@
 
         async function startMediaRecorder() {
             try {
+                if (!isAuthorizedGuidedStudent()) return;
                 audioChunks = [];
                 if (!mediaStream || !mediaStream.active) {
                     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1029,11 +1802,13 @@
                         resetMicUI();
                         return;
                     }
-                    // Chờ 500ms để SpeechRecognition ổn định rồi mới bật ghi âm
-                    setTimeout(() => { startMediaRecorder(); }, 500);
+                    // Chỉ ghi âm cho chế độ có hướng dẫn để phát lại/lưu cùng kết quả.
+                    if (isAuthorizedGuidedStudent()) {
+                        setTimeout(() => { startMediaRecorder(); }, 500);
+                    }
                 } else {
-                    // === Desktop / Android: Giữ nguyên thứ tự cũ ===
-                    await startMediaRecorder();
+                    // Không tạo bản ghi trong chế độ tự do.
+                    if (isAuthorizedGuidedStudent()) await startMediaRecorder();
                     try {
                         recognition.start();
                     } catch (e) {
@@ -1116,6 +1891,303 @@
         function switchScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+            if (screenId === 'mode-screen') {
+                document.getElementById('game-config-bar').style.display = 'none';
+            }
+        }
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function selectGameMode(mode) {
+            gameMode = mode;
+            document.getElementById('game-config-bar').style.display = 'flex';
+            document.getElementById('keyword-config-item').style.display = mode === 'free' ? 'none' : 'flex';
+            if (mode === 'free') renderBuiltInQuestionSetPreview();
+            if (mode === 'free' && document.getElementById('free-qa-list').children.length === 0) {
+                addFreeQaRow();
+            }
+            switchScreen(mode === 'free' ? 'free-setup-screen' : 'setup-screen');
+        }
+
+        function normalizeStudentId(value) {
+            return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+
+        function isAuthorizedGuidedStudent() {
+            const input = document.getElementById('student-name');
+            const enteredId = input ? input.value : studentName;
+            return gameMode !== 'free' && GUIDED_STUDENT_IDS.has(normalizeStudentId(enteredId));
+        }
+
+        function updateGuidedStartAvailability() {
+            const input = document.getElementById('student-name');
+            const startButton = document.getElementById('guided-start-button');
+            const status = document.getElementById('student-id-status');
+            const studentId = normalizeStudentId(input.value);
+            const isAllowed = GUIDED_STUDENT_IDS.has(studentId);
+
+            startButton.disabled = !isAllowed;
+            status.textContent = !studentId
+                ? 'Nhập ID học sinh được cấp để bắt đầu.'
+                : (isAllowed ? 'ID hợp lệ.' : 'ID không hợp lệ.');
+            status.style.color = isAllowed ? 'var(--success)' : (studentId ? 'var(--error)' : '#6b7280');
+        }
+
+        function renderBuiltInQuestionSetPreview() {
+            const container = document.getElementById('built-in-question-sets');
+            container.replaceChildren();
+            BUILT_IN_QUESTION_SETS.forEach((questionSet, setIndex) => {
+                const details = document.createElement('details');
+                details.className = 'question-set-card';
+
+                const summary = document.createElement('summary');
+                summary.textContent = questionSet.title;
+                details.appendChild(summary);
+
+                const content = document.createElement('div');
+                content.className = 'question-set-content';
+                details.appendChild(content);
+                details.addEventListener('toggle', () => {
+                    if (details.open) loadBuiltInQuestionSetPreview(setIndex, content);
+                });
+                container.appendChild(details);
+            });
+        }
+
+        async function loadBuiltInQuestionSetPreview(setIndex, content) {
+            const questionSet = BUILT_IN_QUESTION_SETS[setIndex];
+            if (!questionSet.loadPromise) {
+                const apiUrl = new URL(WEB_APP_URL);
+                apiUrl.searchParams.set('action', 'getVocab');
+                apiUrl.searchParams.set('sheetName', questionSet.sheetName);
+                questionSet.loadPromise = fetch(apiUrl.toString())
+                    .then(response => {
+                        if (!response.ok) throw new Error('Không kết nối được Google Sheet.');
+                        return response.json();
+                    })
+                    .then(rows => (Array.isArray(rows) ? rows : [])
+                        .map(row => ({
+                            question: String(row.context || '').trim(),
+                            answer: String(row.word || '').trim()
+                        }))
+                        .filter(item => item.question && item.answer)
+                        .slice(0, 20));
+            }
+
+            content.replaceChildren();
+            const status = document.createElement('p');
+            status.className = 'question-set-description';
+            status.textContent = 'Đang tải câu hỏi từ Google Sheet…';
+            content.appendChild(status);
+
+            try {
+                questionSet.questions = await questionSet.loadPromise;
+                if (questionSet.questions.length === 0) {
+                    status.textContent = `Tab “${questionSet.sheetName}” chưa có câu hỏi hợp lệ (cần có câu hỏi ở cột context và đáp án ở cột word).`;
+                    return;
+                }
+
+                content.replaceChildren();
+                const description = document.createElement('p');
+                description.className = 'question-set-description';
+                description.textContent = questionSet.description;
+                content.appendChild(description);
+
+                const preview = document.createElement('ul');
+                preview.className = 'question-set-preview';
+                questionSet.questions.forEach((item, index) => {
+                    const entry = document.createElement('li');
+                    const question = document.createElement('strong');
+                    question.textContent = `${index + 1}. ${item.question}`;
+                    const answer = document.createElement('span');
+                    answer.className = 'preview-answer';
+                    answer.textContent = `Đáp án: ${item.answer}`;
+                    entry.append(question, document.createElement('br'), answer);
+                    preview.appendChild(entry);
+                });
+                content.appendChild(preview);
+
+                const useButton = document.createElement('button');
+                useButton.type = 'button';
+                useButton.className = 'btn btn-primary';
+                useButton.textContent = 'Dùng bộ câu hỏi này';
+                useButton.addEventListener('click', () => applyBuiltInQuestionSet(setIndex));
+                content.appendChild(useButton);
+            } catch (error) {
+                questionSet.loadPromise = null;
+                status.textContent = `Không tải được tab “${questionSet.sheetName}”. Hãy thử mở lại hộp sau.`;
+                console.error('Lỗi tải bộ câu hỏi:', error);
+            }
+        }
+
+        function applyBuiltInQuestionSet(setIndex) {
+            const questionSet = BUILT_IN_QUESTION_SETS[setIndex];
+            if (!questionSet.questions || questionSet.questions.length === 0) return;
+            const list = document.getElementById('free-qa-list');
+            list.replaceChildren();
+            questionSet.questions.forEach(item => {
+                addFreeQaRow();
+                const row = list.lastElementChild;
+                row.querySelector('.free-question').value = item.question;
+                row.querySelector('.free-answer').value = item.answer;
+            });
+            updateFreeWordCount();
+            list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function addFreeQaRow() {
+            const list = document.getElementById('free-qa-list');
+            if (list.children.length >= 20) {
+                alert("Bạn chỉ có thể tạo tối đa 20 câu hỏi!");
+                return;
+            }
+
+            const row = document.createElement('div');
+            row.className = 'qa-entry';
+            const number = list.children.length + 1;
+            row.innerHTML = `
+                <div>
+                    <label>Câu hỏi ${number}</label>
+                    <input class="free-question" type="text" maxlength="300" placeholder="Nhập câu hỏi...">
+                </div>
+                <div>
+                    <label>Câu trả lời</label>
+                    <input class="free-answer" type="text" maxlength="150" placeholder="Nhập đáp án...">
+                </div>
+                <button type="button" class="qa-remove" aria-label="Xóa câu hỏi ${number}">Xóa</button>
+            `;
+            row.querySelector('.qa-remove').addEventListener('click', () => {
+                row.remove();
+                updateFreeWordCount();
+            });
+            row.querySelectorAll('input').forEach(input => input.addEventListener('input', updateFreeWordCount));
+            list.appendChild(row);
+            updateFreeWordCount();
+        }
+
+        function updateFreeWordCount() {
+            const count = document.getElementById('free-qa-list').children.length;
+            const countEl = document.getElementById('free-word-count');
+            countEl.innerText = `${count}/20 câu hỏi`;
+            countEl.style.color = '#6b7280';
+        }
+
+        function updateFeedbackCount() {
+            const length = document.getElementById('feedback-message').value.length;
+            document.getElementById('feedback-char-count').innerText = `${length}/2000`;
+        }
+
+        function toggleFeedbackPanel(forceOpen) {
+            const panel = document.getElementById('feedback-panel');
+            const launcher = document.getElementById('feedback-launcher');
+            const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : panel.hidden;
+
+            panel.hidden = !shouldOpen;
+            panel.classList.toggle('open', shouldOpen);
+            launcher.setAttribute('aria-expanded', String(shouldOpen));
+
+            if (shouldOpen) {
+                document.getElementById('feedback-category').focus();
+            } else {
+                launcher.focus();
+            }
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.getElementById('feedback-panel').hidden) {
+                toggleFeedbackPanel(false);
+            }
+        });
+
+        document.addEventListener('click', event => {
+            const panel = document.getElementById('feedback-panel');
+            const launcher = document.getElementById('feedback-launcher');
+            if (!panel.hidden && !panel.contains(event.target) && !launcher.contains(event.target)) {
+                toggleFeedbackPanel(false);
+            }
+        });
+
+        async function submitFeedback(event) {
+            event.preventDefault();
+            if (feedbackSubmitting) return;
+
+            const category = document.getElementById('feedback-category').value;
+            const message = document.getElementById('feedback-message').value.trim();
+            const website = document.getElementById('feedback-website').value.trim();
+            const status = document.getElementById('feedback-status');
+            const submitButton = document.getElementById('feedback-submit');
+
+            if (message.length < 10) {
+                status.innerText = 'Bạn viết thêm một chút nhé (tối thiểu 10 ký tự).';
+                return;
+            }
+            if (message.length > 2000) {
+                status.innerText = 'Góp ý tối đa 2.000 ký tự.';
+                return;
+            }
+            if (!category) {
+                status.innerText = 'Vui lòng chọn chủ đề góp ý.';
+                return;
+            }
+
+            feedbackSubmitting = true;
+            submitButton.disabled = true;
+            submitButton.innerText = 'Đang gửi...';
+            status.innerText = 'Đang gửi góp ý tới Google Sheets...';
+
+            try {
+                await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'submitFeedback',
+                        category,
+                        message,
+                        website
+                    })
+                });
+
+                document.getElementById('feedback-form').reset();
+                updateFeedbackCount();
+                status.innerText = 'Đã gửi yêu cầu tới Apps Script. Cảm ơn bạn!';
+                status.style.color = 'var(--success)';
+            } catch (error) {
+                console.error('Lỗi gửi góp ý:', error);
+                status.innerText = 'Chưa gửi được. Bạn thử lại khi kết nối mạng ổn định nhé.';
+                status.style.color = 'var(--error)';
+            } finally {
+                feedbackSubmitting = false;
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Gửi góp ý <span>➤</span>';
+            }
+        }
+
+        async function prepareGameSession() {
+            currentIndex = 0;
+            score = 0;
+            detailedAnswers = [];
+            initSpeechRecognition();
+
+            // Chế độ có hướng dẫn xin quyền mic sớm cho MediaRecorder; chế độ tự do chỉ xin khi người chơi bấm mic.
+            if (isAuthorizedGuidedStudent()) {
+                try {
+                    if (!mediaStream || !mediaStream.active) {
+                        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+                } catch (e) {
+                    console.warn("Chưa lấy được quyền mic lúc khởi tạo:", e);
+                }
+            }
+
+            hideLoading();
+            switchScreen('game-screen');
+            startTimer(vocabList.length * 90);
+            loadQuestion();
         }
 
         // Hàm xử lý danh sách từ vựng khi tải từ Google Sheets về hoặc khi chuyển đổi chế độ
@@ -1141,11 +2213,18 @@
         }
 
         async function startGame() {
-            studentName = document.getElementById('student-name').value.trim();
+            gameMode = 'guided';
+            studentName = normalizeStudentId(document.getElementById('student-name').value);
             currentSheetName = document.getElementById('sheet-name').value.trim();
 
-            if (!studentName || !currentSheetName) {
-                alert("Vui lòng nhập đầy đủ Tên của bạn và Tên bài học (Sheet Name)!");
+            if (!GUIDED_STUDENT_IDS.has(studentName)) {
+                updateGuidedStartAvailability();
+                alert("ID học sinh không hợp lệ.");
+                return;
+            }
+
+            if (!currentSheetName) {
+                alert("Vui lòng nhập ID bài học!");
                 return;
             }
 
@@ -1168,33 +2247,41 @@
                 // 2. Tự động kiểm tra xem nút trên giao diện đang chọn Trộn hay Theo thứ tự
                 vocabList = prepareVocabList(rawVocabListFromSheets);
 
-                currentIndex = 0;
-                score = 0;
-                detailedAnswers = [];
-
-                initSpeechRecognition();
-
-                // Xin quyền mic sớm để tránh xung đột trên iOS
-                // Khi bấm nút mic, stream đã sẵn sàng, không cần gọi getUserMedia lại
-                try {
-                    if (!mediaStream || !mediaStream.active) {
-                        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    }
-                } catch (e) {
-                    console.warn("Chưa lấy được quyền mic lúc khởi tạo:", e);
-                }
-
-                hideLoading();
-                switchScreen('game-screen');
-                const totalTime = vocabList.length * 90;
-                startTimer(totalTime);
-                loadQuestion();
+                await prepareGameSession();
 
             } catch (error) {
                 console.error("Lỗi tải từ vựng:", error);
                 alert("Không thể kết nối đến Google Sheets. Vui lòng kiểm tra lại WEB_APP_URL hoặc đường truyền mạng!");
                 hideLoading();
             }
+        }
+
+        async function startFreeGame() {
+            const pairs = [...document.querySelectorAll('#free-qa-list .qa-entry')].map(row => ({
+                question: row.querySelector('.free-question').value.trim(),
+                answer: row.querySelector('.free-answer').value.trim()
+            }));
+
+            if (pairs.length === 0) {
+                alert("Vui lòng thêm ít nhất 1 câu hỏi và câu trả lời!");
+                return;
+            }
+            if (pairs.some(pair => !pair.question || !pair.answer)) {
+                alert("Vui lòng nhập đầy đủ câu hỏi và câu trả lời cho từng dòng!");
+                return;
+            }
+
+            currentSheetName = 'TuDo';
+            rawVocabListFromSheets = pairs.map(pair => ({
+                word: pair.answer,
+                context: pair.question,
+                ipa: '',
+                type: '',
+                meaning: ''
+            }));
+            vocabList = prepareVocabList(rawVocabListFromSheets);
+            showLoading("Đang chuẩn bị trò chơi...");
+            await prepareGameSession();
         }
 
         function loadQuestion() {
@@ -1212,18 +2299,24 @@
 
             // Xử lý hiển thị Context (Ẩn từ cần điền bằng [____])
             let contextText = currentVocab.context || "";
-            // Nếu trong context chưa có dấu [____], tự động nối vào cuối câu
-            if (!contextText.includes("[____]") && !contextText.includes("___")) {
+            if (gameMode === 'free') {
+                contextText = `<span style="font-size:1.15em; font-weight:700;">${escapeHTML(currentVocab.context)}</span>`;
+            } else if (!contextText.includes("[____]") && !contextText.includes("___")) {
                 contextText += " <span class='blank-space'>[____]</span>";
             } else {
                 contextText = contextText.replace(/\[____\]|___/g, "<span class='blank-space'>[____]</span>");
             }
             document.getElementById('context-display').innerHTML = contextText;
 
+            document.getElementById('speaker-btn').innerText = gameMode === 'free' ? '🔊 Nghe câu hỏi' : '🔊 Nghe đọc câu';
+            document.getElementById('free-game-help').style.display = gameMode === 'free' ? 'block' : 'none';
+            document.getElementById('free-mic-privacy-note').style.display = gameMode === 'free' ? 'block' : 'none';
+
             // Cập nhật Gợi ý
             document.getElementById('hint-ipa').innerText = currentVocab.ipa ? `/${currentVocab.ipa}/` : '';
             document.getElementById('hint-type').innerText = currentVocab.type ? `(${currentVocab.type})` : '';
             document.getElementById('hint-meaning').innerText = currentVocab.meaning || '';
+            document.getElementById('hint-box').style.display = gameMode === 'free' ? 'none' : 'flex';
 
             // Reset Input & UI
             const manualInput = document.getElementById('manual-input');
@@ -1237,7 +2330,12 @@
             currentQuestionWrongSTT = [];
 
             document.getElementById('mic-btn').style.pointerEvents = 'auto';
-            document.getElementById('mic-status').innerText = "Nhấn vào Micro và đọc từ cần điền";
+            document.getElementById('mic-status').innerText = gameMode === 'free'
+                ? "Nhấn vào Micro và đọc câu trả lời"
+                : "Nhấn vào Micro và đọc từ cần điền";
+            manualInput.placeholder = gameMode === 'free'
+                ? "Gõ câu trả lời và nhấn Enter..."
+                : "Gõ từ vào đây và nhấn Enter...";
             document.getElementById('feedback-area').className = 'feedback';
             document.getElementById('next-btn').style.display = 'none';
             resetPlaybackUI();
@@ -1316,15 +2414,18 @@
             const targetWord = (currentVocab.word || "").trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()。、！？「」\s]/g, "");
             const targetIpa = (currentVocab.ipa || "").trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()。、！？「」\s]/g, "");
             const targetContext = (currentVocab.context || "").trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()。、！？「」\s]/g, "");
-            const feedbackAnswer = isKeywordOnlyMode ? targetWord : (targetContext || targetWord);
-            const displayFeedbackAnswer = isKeywordOnlyMode
+            const useKeywordAnswer = gameMode === 'free' || isKeywordOnlyMode;
+            const feedbackAnswer = useKeywordAnswer ? targetWord : (targetContext || targetWord);
+            const displayFeedbackAnswer = useKeywordAnswer
                 ? (currentVocab.word || "").trim()
                 : ((currentVocab.context || currentVocab.word || "").trim());
 
             // 3. KIỂM TRA ĐÁP ÁN THEO CHẾ ĐỘ
             let isCorrect = false;
 
-            if (isKeywordOnlyMode) {
+            if (gameMode === 'free') {
+                isCorrect = cleanUserAnswer === targetWord;
+            } else if (isKeywordOnlyMode) {
                 // CHẾ ĐỘ 🔑 CHỈ TỪ KHÓA:
                 // Nói khớp từ khóa cột A, hoặc IPA, hoặc đọc nguyên câu cột F mà bên trong có chứa từ khóa đều ĐÚNG!
                 const containsTargetWord = targetWord !== "" && cleanUserAnswer.includes(targetWord);
@@ -1366,10 +2467,12 @@
 
                 // HIỂN THỊ CÂU HOÀN CHỈNH VÀ HIGHLIGHT TỪ KHÓA
                 const contextBox = document.getElementById('context-display');
-                let displayHTML = currentVocab.context || "";
+                let displayHTML = gameMode === 'free'
+                    ? escapeHTML(currentVocab.context || "")
+                    : (currentVocab.context || "");
 
                 // Tự động tìm từ khóa (cột A) trong câu ngữ cảnh để tô màu xanh + gạch chân cho đẹp mắt
-                if (currentVocab.word && displayHTML.toLowerCase().includes(currentVocab.word.toLowerCase())) {
+                if (gameMode !== 'free' && currentVocab.word && displayHTML.toLowerCase().includes(currentVocab.word.toLowerCase())) {
                     const regex = new RegExp(`(${currentVocab.word})`, 'gi');
                     displayHTML = displayHTML.replace(regex, '<b style="color: var(--success); text-decoration: underline;">$1</b>');
                 }
@@ -1395,7 +2498,7 @@
                 // LƯU CHI TIẾT: Chế độ nào thì lưu "Từ chuẩn" theo chế độ đó
                 detailedAnswers.push({
                     question: currentVocab.context,
-                    targetWord: isKeywordOnlyMode ? currentVocab.word : (currentVocab.context || currentVocab.word),
+                    targetWord: useKeywordAnswer ? currentVocab.word : (currentVocab.context || currentVocab.word),
                     studentAnswer: userAnswer + (inputType === 'speech' ? " 🎙️" : " ✍️"),
                     isCorrect: true,
                     points: earnedScore,
@@ -1453,7 +2556,6 @@
         async function endGame() {
             if (timerInterval) clearInterval(timerInterval);
             switchScreen('result-screen');
-            document.getElementById('result-student-name').innerText = `Học sinh: ${studentName}`;
             document.getElementById('final-score').innerText = score;
 
             // Render bảng chi tiết
@@ -1466,17 +2568,34 @@
                     ? `<button class="btn-playback" style="padding: 4px 10px; font-size: 0.82rem;" onclick="playResultAudio(${idx})">▶️ Nghe</button>`
                     : `<span style="color: #9ca3af; font-size: 0.8rem;">-</span>`;
 
-                tr.innerHTML = `
-                    <td class="tag-correct">${item.targetWord}</td>
-                    <td>${item.studentAnswer}</td>
-                    <td><b>+${item.points}</b></td>
-                    <td style="text-align: center;">${audioBtnHtml}</td>
-                `;
+                const targetCell = document.createElement('td');
+                targetCell.className = 'tag-correct';
+                targetCell.textContent = item.targetWord;
+                const answerCell = document.createElement('td');
+                answerCell.textContent = item.studentAnswer;
+                const pointsCell = document.createElement('td');
+                const points = document.createElement('b');
+                points.textContent = `+${item.points}`;
+                pointsCell.appendChild(points);
+                const audioCell = document.createElement('td');
+                audioCell.style.textAlign = 'center';
+                audioCell.className = 'result-audio-cell';
+                audioCell.innerHTML = audioBtnHtml;
+                tr.append(targetCell, answerCell, pointsCell, audioCell);
                 tbody.appendChild(tr);
             });
 
-            // Tự động bắn dữ liệu về GAS Web App
-            await saveResultsToGAS();
+            if (gameMode === 'free') {
+                document.getElementById('result-student-name').innerText = 'Chế độ tự do · kết quả chỉ hiển thị trong phiên này.';
+                document.getElementById('save-status').innerText = 'Điểm chỉ hiển thị trong phiên này; game không lưu câu trả lời hay bản ghi âm.';
+                document.getElementById('save-status').style.color = '#6b7280';
+                document.getElementById('result-audio-heading').style.display = 'none';
+                document.querySelectorAll('.result-audio-cell').forEach(cell => cell.style.display = 'none');
+            } else {
+                document.getElementById('result-student-name').innerText = `Học sinh: ${studentName}`;
+                document.getElementById('result-audio-heading').style.display = '';
+                await saveResultsToGAS();
+            }
         }
 
         function playResultAudio(index) {
@@ -1487,6 +2606,7 @@
         }
 
         async function saveResultsToGAS() {
+            if (!isAuthorizedGuidedStudent()) return;
             const statusEl = document.getElementById('save-status');
             statusEl.innerText = "⏳ Đang đồng bộ kết quả & file ghi âm về Google Sheets & Drive...";
             statusEl.style.color = "#6b7280";
@@ -1631,7 +2751,9 @@
             } else {
                 // Khi tắt chế độ: Hiển thị lại câu hỏi text bình thường
                 let contextText = currentVocab.context || "";
-                if (!contextText.includes("[____]") && !contextText.includes("___")) {
+                if (gameMode === 'free') {
+                    contextText = `<span style="font-size:1.15em; font-weight:700;">${escapeHTML(currentVocab.context)}</span>`;
+                } else if (!contextText.includes("[____]") && !contextText.includes("___")) {
                     contextText += " <span class='blank-space'>[____]</span>";
                 } else {
                     contextText = contextText.replace(/\[____\]|___/g, "<span class='blank-space'>[____]</span>");
@@ -1695,6 +2817,13 @@
             // 2. Tự động cập nhật ngôn ngữ cho Mic thu âm (SpeechRecognition)
             if (typeof recognition !== 'undefined') {
                 recognition.lang = config.speechLang;
+            }
+
+            if (gameMode === 'free') return;
+
+            if (!document.getElementById('game-screen').classList.contains('active')) {
+                document.getElementById('sheet-name').value = config.sheetName;
+                return;
             }
 
             // 3. Hiển thị thông báo đang tải dữ liệu mới

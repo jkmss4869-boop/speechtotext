@@ -4,6 +4,13 @@ function doGet(e) {
   
   // 1. API Lấy từ vựng: ?action=getVocab&sheetName=Unit1
   if (action === "getVocab") {
+    // Không cho endpoint từ vựng công khai đọc các sheet lưu kết quả/góp ý.
+    var restrictedSheets = ["scores", "details", "feedback"];
+    if (restrictedSheets.indexOf(String(sheetName).trim().toLowerCase()) !== -1) {
+      return ContentService.createTextOutput(JSON.stringify([]))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(sheetName);
     
@@ -40,8 +47,30 @@ function doPost(e) {
     var action = data.action;
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
+    // 1. Gửi góp ý ẩn danh từ panel góp ý công khai.
+    if (action === "submitFeedback") {
+      // Honeypot chống bot đơn giản; bỏ qua yêu cầu có điền ô ẩn.
+      if (String(data.website || "").trim() !== "") {
+        return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var categories = ["Tính năng", "Nội dung", "Giao diện", "Lỗi", "Khác"];
+      var category = String(data.category || "").trim();
+      var feedback = String(data.message || "").trim();
+      if (categories.indexOf(category) === -1 || feedback.length < 10 || feedback.length > 2000) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Invalid feedback" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var feedbackSheet = ss.getSheetByName("Feedback") || ss.insertSheet("Feedback");
+      if (feedbackSheet.getLastRow() === 0) {
+        feedbackSheet.appendRow(["Timestamp", "Chủ đề", "Góp ý"]);
+      }
+      feedbackSheet.appendRow([new Date(), category, safeFeedbackCell(feedback)]);
+    }
     // 2. API Lưu điểm tổng
-    if (action === "saveScore") {
+    else if (action === "saveScore") {
       var sheet = ss.getSheetByName("Scores") || ss.insertSheet("Scores");
       // Nếu chưa có header thì tạo header
       if (sheet.getLastRow() === 0) {
@@ -81,6 +110,9 @@ function doPost(e) {
         ]);
       }
     }
+    else {
+      throw new Error("Unsupported action");
+    }
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -89,4 +121,10 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// Tránh hiểu nội dung góp ý bắt đầu bằng ký hiệu công thức thành công thức trong Sheets.
+function safeFeedbackCell(value) {
+  var text = String(value || "");
+  return /^[=+\-@]/.test(text) ? "'" + text : text;
 }
