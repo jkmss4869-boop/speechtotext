@@ -1104,6 +1104,22 @@
             color: #3f5e5a;
         }
 
+        .privacy-note summary {
+            color: var(--primary-dark);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .privacy-note summary:focus-visible {
+            outline: 3px solid var(--primary-light);
+            outline-offset: 3px;
+            border-radius: 4px;
+        }
+
+        .privacy-note p {
+            margin: 10px 0 0;
+        }
+
         .game-help {
             padding: 11px 14px;
             margin: -4px 0 15px;
@@ -1402,7 +1418,10 @@
             </div>
         </div>
         <footer class="site-footer">
-            <p><strong>Lưu ý về quyền riêng tư:</strong> Chế độ chơi tự do (Public Mode) chỉ giữ bản ghi âm tạm thời trong bộ nhớ phiên chơi khi bạn nhấn micro để có thể nghe lại. Game không tải bản ghi lên Google Sheets/Drive; bản ghi sẽ mất khi tải lại hoặc đóng trang. Tùy trình duyệt, âm thanh dùng để nhận diện giọng nói có thể được gửi tới dịch vụ nhận diện trực tuyến. Tính năng lưu trữ bản ghi âm lâu dài chỉ được kích hoạt riêng cho tài khoản Học viên nội bộ (có mã xác thực) để phân tích lộ trình học cá nhân.</p>
+            <details class="privacy-note">
+                <summary>🛡️ Lưu ý về quyền riêng tư</summary>
+                <p>Chế độ chơi tự do (Public Mode) chỉ giữ bản ghi âm tạm thời trong bộ nhớ phiên chơi khi bạn nhấn micro để có thể nghe lại. Game không tải bản ghi lên Google Sheets/Drive; bản ghi sẽ mất khi tải lại hoặc đóng trang. Tùy trình duyệt, âm thanh dùng để nhận diện giọng nói có thể được gửi tới dịch vụ nhận diện trực tuyến. Tính năng lưu trữ bản ghi âm lâu dài chỉ được kích hoạt riêng cho tài khoản Học viên nội bộ (có mã xác thực) để phân tích lộ trình học cá nhân.</p>
+            </details>
             <p>© 2026 Speech Reflex Game. Developed by Vy. All rights reserved.</p>
         </footer>
     </div>
