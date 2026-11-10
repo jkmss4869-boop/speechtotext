@@ -977,6 +977,39 @@
             font: inherit;
         }
 
+        .free-bulk-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .free-bulk-inputs textarea {
+            height: 280px;
+            box-sizing: border-box;
+            resize: vertical;
+            font: inherit;
+            line-height: 1.5;
+        }
+
+        .free-bulk-inputs label {
+            min-height: 1.5em;
+            margin-bottom: 4px;
+        }
+
+        .free-bulk-hint {
+            display: block;
+            min-height: 1.5em;
+            margin-bottom: 6px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 600px) {
+            .free-bulk-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .question-set-card {
             display: flex;
             align-items: center;
@@ -1306,8 +1339,35 @@
             <div id="built-in-question-sets" role="group" aria-label="Chọn một bộ câu hỏi có sẵn"></div>
             <div class="form-group">
                 <label>Câu hỏi và câu trả lời <span style="font-weight:500; color:#6b7280;">(tối đa 20 cặp)</span></label>
-                <div id="free-qa-list"></div>
-                <button type="button" class="btn btn-secondary" style="margin-top:0;" onclick="addFreeQaRow()">＋ Thêm cặp câu hỏi</button>
+                <small style="display:block; margin:-3px 0 12px; color:#6b7280; line-height:1.5;">Ghi chú: dán hai danh sách cùng thứ tự, mỗi câu hỏi và câu trả lời nằm trên một dòng. Câu có xuống dòng bên trong sẽ làm lệch cặp.</small>
+                <div role="radiogroup" aria-label="Cách nhập câu hỏi" style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:12px;">
+                    <label style="display:inline-flex; align-items:center; gap:7px; font-weight:600; color:#4b5563; cursor:pointer;">
+                        <input type="radio" name="free-input-mode" value="pairs" checked onchange="setFreeInputMode('pairs')">
+                        Nhập từng cặp
+                    </label>
+                    <label style="display:inline-flex; align-items:center; gap:7px; font-weight:600; color:#4b5563; cursor:pointer;">
+                        <input type="radio" name="free-input-mode" value="bulk" onchange="setFreeInputMode('bulk')">
+                        Dán hai danh sách
+                    </label>
+                </div>
+                <div id="free-pairs-panel">
+                    <div id="free-qa-list"></div>
+                    <button type="button" class="btn btn-secondary" style="margin-top:0;" onclick="addFreeQaRow()">＋ Thêm cặp câu hỏi</button>
+                </div>
+                <div id="free-bulk-panel" hidden>
+                    <div class="free-bulk-inputs">
+                        <div>
+                            <label for="free-bulk-questions">Danh sách câu hỏi</label>
+                            <small class="free-bulk-hint">Mỗi dòng một câu</small>
+                            <textarea id="free-bulk-questions" class="form-control" wrap="off" maxlength="6200" placeholder="Dán danh sách câu hỏi vào đây..." oninput="handleFreeBulkInput()"></textarea>
+                        </div>
+                        <div>
+                            <label for="free-bulk-answers">Danh sách câu trả lời</label>
+                            <small class="free-bulk-hint">Mỗi dòng một câu</small>
+                            <textarea id="free-bulk-answers" class="form-control" wrap="off" maxlength="3200" placeholder="Dán danh sách câu trả lời vào đây..." oninput="handleFreeBulkInput()"></textarea>
+                        </div>
+                    </div>
+                </div>
                 <small id="free-word-count" style="display:block; margin-top:8px; color:#6b7280;">0/20 câu hỏi</small>
             </div>
             <button class="btn btn-primary" onclick="startFreeGame()">
@@ -1996,9 +2056,40 @@
             updateFreeWordCount();
         }
 
+        function setFreeInputMode(mode) {
+            const useBulk = mode === 'bulk';
+            document.getElementById('free-pairs-panel').hidden = useBulk;
+            document.getElementById('free-bulk-panel').hidden = !useBulk;
+            clearBuiltInQuestionSetSelection();
+            updateFreeWordCount();
+        }
+
+        function handleFreeBulkInput() {
+            clearBuiltInQuestionSetSelection();
+            updateFreeWordCount();
+        }
+
+        function getFreeBulkLines(text) {
+            const lines = String(text || '').replace(/\r/g, '').split('\n').map(line => line.trim());
+            while (lines.length && lines[lines.length - 1] === '') lines.pop();
+            return lines;
+        }
+
         function updateFreeWordCount() {
-            const count = document.getElementById('free-qa-list').children.length;
             const countEl = document.getElementById('free-word-count');
+            const mode = document.querySelector('input[name="free-input-mode"]:checked')?.value || 'pairs';
+            if (mode === 'bulk') {
+                const questionLines = getFreeBulkLines(document.getElementById('free-bulk-questions').value);
+                const answerLines = getFreeBulkLines(document.getElementById('free-bulk-answers').value);
+                countEl.innerText = `Câu hỏi: ${questionLines.length} dòng · Câu trả lời: ${answerLines.length} dòng · tối đa 20 cặp`;
+                const hasBlankLine = questionLines.some(line => !line) || answerLines.some(line => !line);
+                const isInvalid = questionLines.length !== answerLines.length ||
+                    questionLines.length > 20 || answerLines.length > 20 || hasBlankLine;
+                countEl.style.color = isInvalid ? '#dc2626' : '#6b7280';
+                return;
+            }
+
+            const count = document.getElementById('free-qa-list').children.length;
             countEl.innerText = `${count}/20 câu hỏi`;
             countEl.style.color = '#6b7280';
         }
@@ -2195,18 +2286,43 @@
                     return;
                 }
             } else {
-                pairs = [...document.querySelectorAll('#free-qa-list .qa-entry')].map(row => ({
-                    question: row.querySelector('.free-question').value.trim(),
-                    answer: row.querySelector('.free-answer').value.trim()
-                }));
+                const inputMode = document.querySelector('input[name="free-input-mode"]:checked')?.value || 'pairs';
+                if (inputMode === 'bulk') {
+                    const questions = getFreeBulkLines(document.getElementById('free-bulk-questions').value);
+                    const answers = getFreeBulkLines(document.getElementById('free-bulk-answers').value);
 
-                if (pairs.length === 0) {
-                    alert("Vui lòng chọn một bộ câu hỏi hoặc thêm ít nhất 1 cặp câu hỏi và câu trả lời!");
-                    return;
-                }
-                if (pairs.some(pair => !pair.question || !pair.answer)) {
-                    alert("Vui lòng nhập đầy đủ câu hỏi và câu trả lời cho từng dòng!");
-                    return;
+                    if (questions.length !== answers.length) {
+                        alert(`Số dòng chưa khớp: có ${questions.length} câu hỏi và ${answers.length} câu trả lời. Hãy kiểm tra lại thứ tự hai danh sách.`);
+                        return;
+                    }
+                    if (questions.length === 0) {
+                        alert('Vui lòng dán ít nhất một câu hỏi và một câu trả lời.');
+                        return;
+                    }
+                    if (questions.length > 20) {
+                        alert('Bạn chỉ có thể tạo tối đa 20 cặp câu hỏi và câu trả lời.');
+                        return;
+                    }
+                    if (questions.some(question => !question) || answers.some(answer => !answer)) {
+                        alert('Danh sách có dòng trống ở giữa. Hãy xóa dòng trống hoặc điền đủ nội dung để không lệch cặp.');
+                        return;
+                    }
+
+                    pairs = questions.map((question, index) => ({ question, answer: answers[index] }));
+                } else {
+                    pairs = [...document.querySelectorAll('#free-qa-list .qa-entry')].map(row => ({
+                        question: row.querySelector('.free-question').value.trim(),
+                        answer: row.querySelector('.free-answer').value.trim()
+                    }));
+
+                    if (pairs.length === 0) {
+                        alert("Vui lòng chọn một bộ câu hỏi hoặc thêm ít nhất 1 cặp câu hỏi và câu trả lời!");
+                        return;
+                    }
+                    if (pairs.some(pair => !pair.question || !pair.answer)) {
+                        alert("Vui lòng nhập đầy đủ câu hỏi và câu trả lời cho từng dòng!");
+                        return;
+                    }
                 }
             }
 
