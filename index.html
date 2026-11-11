@@ -1289,11 +1289,11 @@
             <p class="subtitle">Chọn cách bạn muốn luyện tập</p>
             <div class="mode-options">
                 <button class="mode-card" onclick="selectGameMode('guided')">
-                    <strong>📘 Học có hướng dẫn</strong>
+                    <strong>📘 Học với giáo viên</strong>
                     <span>Bạn cần giáo viên đồng hành phân tích và sửa lỗi phát âm sau mỗi lần luyện tập? Đăng ký học 1 kèm 1.</span>
                 </button>
                 <button class="mode-card" onclick="selectGameMode('free')">
-                    <strong>✨ Tự do</strong>
+                    <strong>✨ Tự học </strong>
                     <span>Luyện theo bài học và danh sách từ có sẵn hoặc tự tạo tối đa 20 cặp câu hỏi và câu trả lời.</span>
                 </button>
             </div>
@@ -1326,7 +1326,7 @@
         </div>
 
         <div id="free-setup-screen" class="screen">
-            <h1 class="title">✨ Chế độ tự do</h1>
+            <h1 class="title">✨ Chế độ tự học</h1>
             <p class="subtitle">Chọn một bộ câu hỏi rồi bắt đầu chơi. Nội dung sẽ hiện lần lượt trong game.</p>
             <div class="free-steps">
                 <strong>Cách chơi</strong>
@@ -1480,7 +1480,7 @@
         <footer class="site-footer">
             <details class="privacy-note">
                 <summary>🛡️ Lưu ý về quyền riêng tư</summary>
-                <p>Chế độ chơi tự do (Public Mode) chỉ giữ bản ghi âm tạm thời trong bộ nhớ phiên chơi khi bạn nhấn micro để có thể nghe lại. Game không tải bản ghi lên Google Sheets/Drive; bản ghi sẽ mất khi tải lại hoặc đóng trang. Tùy trình duyệt, âm thanh dùng để nhận diện giọng nói có thể được gửi tới dịch vụ nhận diện trực tuyến. Tính năng lưu trữ bản ghi âm lâu dài chỉ được kích hoạt riêng cho tài khoản Học viên nội bộ (có mã xác thực) để phân tích lộ trình học cá nhân.</p>
+                <p>Trên máy tính, chế độ chơi tự học (Public Mode) giữ bản ghi âm tạm thời trong bộ nhớ phiên chơi để bạn nghe lại; game không tải bản ghi này lên Google Sheets/Drive. Trên điện thoại, game ưu tiên nhận diện giọng nói nên không tạo bản nghe lại để tránh xung đột quyền truy cập micro. Tùy trình duyệt, âm thanh dùng để nhận diện có thể được gửi tới dịch vụ trực tuyến. Tính năng lưu trữ bản ghi âm lâu dài chỉ dành cho tài khoản Học viên nội bộ có mã xác thực.</p>
             </details>
             <p>© 2026 Speech Reflex Game. Developed by Vy. All rights reserved.</p>
         </footer>
@@ -1943,7 +1943,10 @@
         }
 
         function shouldRecordAudioLocally() {
-            return gameMode === 'free' || isAuthorizedGuidedStudent();
+            // Mobile browsers may let MediaRecorder take the mic away from
+            // Web Speech Recognition. Keep recognition as the only mic client there.
+            const isMobileDevice = isIOS() || /Android/i.test(navigator.userAgent);
+            return !isMobileDevice && (gameMode === 'free' || isAuthorizedGuidedStudent());
         }
 
         function updateGuidedStartAvailability() {
@@ -2191,7 +2194,7 @@
             detailedAnswers = [];
             initSpeechRecognition();
 
-            // Chế độ có hướng dẫn xin quyền mic sớm cho MediaRecorder; chế độ tự do chỉ xin khi người chơi bấm mic.
+            // Chế độ có hướng dẫn xin quyền mic sớm cho MediaRecorder; chế độ tự học chỉ xin khi người chơi bấm mic.
             if (isAuthorizedGuidedStudent()) {
                 try {
                     if (!mediaStream || !mediaStream.active) {
@@ -2712,7 +2715,7 @@
             });
 
             if (gameMode === 'free') {
-                document.getElementById('result-student-name').innerText = 'Chế độ tự do · kết quả chỉ hiển thị trong phiên này.';
+                document.getElementById('result-student-name').innerText = 'Chế độ tự học · kết quả chỉ hiển thị trong phiên này.';
                 document.getElementById('save-status').innerText = 'Điểm, câu trả lời và bản ghi âm (nếu có) chỉ được giữ tạm trong phiên này; game không gửi dữ liệu lên Google Sheets/Drive.';
                 document.getElementById('save-status').style.color = '#6b7280';
             } else {
@@ -2836,7 +2839,7 @@
 
             // 4. Khởi tạo giọng đọc
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            // Chế độ tự do mặc định ưu tiên giọng Google UK English Male.
+            // Chế độ tự học mặc định ưu tiên giọng Google UK English Male.
             utterance.lang = isFreeGame ? 'en-GB' : LANG_CONFIG[currentLang].speechLang;
             if (isFreeGame) {
                 const googleUkMale = window.speechSynthesis.getVoices()

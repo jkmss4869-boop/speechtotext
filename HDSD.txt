@@ -1,0 +1,5 @@
+Phụ thuộc vào trình duyệt & thiết bị: Chạy trên Chrome mượt, nhưng qua Safari (iPhone/iPad) hay Firefox là phập phù ngay. Trên iOS, Apple siết quyền micro và nhận diện giọng nói rất kỹ.
+
+Không đồng nhất (Inconsistency): Máy laptop xịn nhận diện chuẩn 99%, nhưng điện thoại giá rẻ micro kém là nhận diện sai bét nhè.
+
+Không có offline hoàn toàn: Nhiều thiết bị vẫn cần kết nối internet để Chrome gửi audio về server của Google xử lý.
