@@ -655,6 +655,16 @@
             text-decoration: underline;
         }
 
+        .diff-missing {
+            background: #dc2626;
+            color: #fff;
+            border: 1px dashed #7f1d1d;
+            border-radius: 3px;
+            padding: 1px 3px;
+            font-weight: 800;
+            text-decoration: underline;
+        }
+
         .correct-answer {
             margin-top: 8px;
             color: #065f46;
@@ -1603,7 +1613,6 @@
             loadPromise: null
         }));
 
-        let currentQuestionFailCount = 0;   // Đếm số lần đọc sai của câu hiện tại
         let currentQuestionWrongAttempts = []; // Lưu các lần trả lời sai bằng mic hoặc bàn phím
         let timerInterval = null; // Biến lưu bộ đếm thời gian
         let timeRemaining = 0;    // Số giây còn lại
@@ -2385,7 +2394,6 @@
             manualInput.style.border = "";
             manualInput.classList.remove('input-wrong');
 
-            currentQuestionFailCount = 0;
             currentQuestionWrongAttempts = [];
 
             document.getElementById('mic-btn').style.pointerEvents = 'auto';
@@ -2409,20 +2417,31 @@
         // ==========================================
         // 1. HÀM KIỂM TRA ĐÁP ÁN (ĐÃ NÂNG CẤP)
         // ==========================================
-        // Hiển thị các ký tự đúng/sai bằng cách căn chỉnh hai chuỗi.
+        // Hiển thị ký tự sai và chèn ký tự bị thiếu vào vị trí cần có trong câu trả lời.
         function highlightDiff(userAnswer, correctAnswer, displayAnswer = correctAnswer) {
             const feedbackArea = document.getElementById('feedback-area');
             const userChars = Array.from(userAnswer);
             const correctChars = Array.from(correctAnswer);
             const rows = userChars.length + 1;
             const cols = correctChars.length + 1;
-            const lcs = Array.from({ length: rows }, () => Array(cols).fill(0));
+            const editDistance = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+            for (let i = userChars.length - 1; i >= 0; i--) {
+                editDistance[i][correctChars.length] = userChars.length - i;
+            }
+            for (let j = correctChars.length - 1; j >= 0; j--) {
+                editDistance[userChars.length][j] = correctChars.length - j;
+            }
 
             for (let i = userChars.length - 1; i >= 0; i--) {
                 for (let j = correctChars.length - 1; j >= 0; j--) {
-                    lcs[i][j] = userChars[i] === correctChars[j]
-                        ? lcs[i + 1][j + 1] + 1
-                        : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+                    editDistance[i][j] = userChars[i] === correctChars[j]
+                        ? editDistance[i + 1][j + 1]
+                        : 1 + Math.min(
+                            editDistance[i + 1][j + 1],
+                            editDistance[i + 1][j],
+                            editDistance[i][j + 1]
+                        );
                 }
             }
 
@@ -2431,18 +2450,35 @@
             diffLine.append('Bạn nhập: ');
             let i = 0;
             let j = 0;
-            while (i < userChars.length) {
+            while (i < userChars.length || j < correctChars.length) {
                 const char = document.createElement('span');
-                if (j < correctChars.length && userChars[i] === correctChars[j]) {
+
+                if (i < userChars.length && j < correctChars.length && userChars[i] === correctChars[j]) {
                     char.className = 'diff-correct';
+                    char.textContent = userChars[i];
+                    i++;
+                    j++;
+                } else if (i < userChars.length && j < correctChars.length &&
+                    editDistance[i][j] === editDistance[i + 1][j + 1] + 1) {
+                    // Ký tự người học nhập sai vị trí này (thay cho ký tự chuẩn).
+                    char.className = 'diff-wrong';
+                    char.textContent = userChars[i];
+                    i++;
+                    j++;
+                } else if (j < correctChars.length &&
+                    (i === userChars.length || editDistance[i][j] === editDistance[i][j + 1] + 1)) {
+                    // Hiển thị ký tự chuẩn bị thiếu ngay tại vị trí cần có.
+                    char.className = 'diff-missing';
+                    char.textContent = `⟦${correctChars[j]}⟧`;
+                    char.setAttribute('aria-label', `Thiếu ký tự ${correctChars[j]}`);
                     j++;
                 } else {
+                    // Ký tự thừa trong câu trả lời.
                     char.className = 'diff-wrong';
-                    if (j < correctChars.length && lcs[i][j + 1] >= lcs[i + 1][j]) j++;
+                    char.textContent = userChars[i];
+                    i++;
                 }
-                char.textContent = userChars[i];
                 diffLine.appendChild(char);
-                i++;
             }
 
             const correctLine = document.createElement('div');
@@ -2626,7 +2662,6 @@
                     audioData: audioRecordData
                 });
 
-                currentQuestionFailCount = 0;
                 currentQuestionWrongAttempts = [];
 
                 const nextBtn = document.getElementById('next-btn');
@@ -2637,18 +2672,6 @@
                 // SAI
                 isFirstAttempt = false;
                 currentQuestionWrongAttempts.push(`${userAnswer.trim()} (${inputType === 'speech' ? 'Mic' : 'Gõ'})`);
-                if (inputType === 'speech') {
-                    currentQuestionFailCount++;
-
-                    if (currentQuestionFailCount >= 3) {
-                        const micStatus = document.getElementById('mic-status');
-                        micStatus.innerText = `⚠️ Đọc chưa khớp 3 lần. Bạn hãy gõ đáp án bên dưới nhé!`;
-                        micStatus.style.color = "#d32f2f";
-
-                        alert("Máy chưa nghe rõ giọng rồi, bạn hãy gõ từ vào ô bên dưới để qua câu nhé! ✍️");
-                        document.getElementById('manual-input').focus();
-                    }
-                }
                 const inputEl = document.getElementById('manual-input');
                 highlightDiff(cleanUserAnswer, feedbackAnswer, displayFeedbackAnswer);
                 inputEl.classList.add('input-wrong');
