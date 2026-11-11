@@ -1318,7 +1318,7 @@
 
         <div id="setup-screen" class="screen">
             <h1 class="title">🎙️ Speech Reflex Game</h1>
-            <p class="subtitle">Luyện phản xạ phát âm tiếng Anh chuẩn xác</p>
+            <p id="guided-mode-subtitle" class="subtitle">Luyện phản xạ phát âm tiếng Anh chuẩn xác</p>
 
             <div class="form-group">
                 <label for="student-name">ID học sinh:</label>
@@ -1577,18 +1577,21 @@
         const LANG_CONFIG = {
             'en': {
                 name: "🇬🇧 Tiếng Anh",
+                subjectName: 'tiếng Anh',
                 speechLang: 'en-US',
                 sheetName: 'Vocab_EN', // Tên tab trong Google Sheets của bạn
                 font: "'Quicksand', sans-serif"
             },
             'ja': {
                 name: "🇯🇵 Tiếng Nhật",
+                subjectName: 'tiếng Nhật',
                 speechLang: 'ja-JP',
                 sheetName: 'Vocab_JP',
                 font: "'Quicksand', 'Kosugi Maru', sans-serif"
             },
             'zh': {
                 name: "🇨🇳 Tiếng Trung",
+                subjectName: 'tiếng Trung',
                 speechLang: 'zh-CN',
                 sheetName: 'Vocab_ZH',
                 font: "'Quicksand', 'ZCOOL KuaiLe', sans-serif"
@@ -1607,18 +1610,21 @@
         // Danh sách ID được giao diện cho phép vào chế độ có hướng dẫn.
         const GUIDED_STUDENT_IDS = new Set(['trinh', 'duong gia dat', 'minh']);
 
-        const BUILT_IN_QUESTION_SETS = [
-            'Thì Quá Khứ Đơn',
-            'Thì Hiện Tại Đơn',
-            'Danh Từ Số Ít Số Nhiều',
-            'Mệnh đề If Loại 1',
-            'Not Only But Also'
-        ].map(sheetName => ({
-            title: sheetName,
-            sheetName,
-            questions: null,
-            loadPromise: null
-        }));
+        const BUILT_IN_QUESTION_SETS = {
+            en: [
+                'Thì Quá Khứ Đơn',
+                'Thì Hiện Tại Đơn',
+                'Danh Từ Số Ít Số Nhiều',
+                'Mệnh đề If Loại 1',
+                'Not Only But Also'
+            ].map(sheetName => ({ title: sheetName, sheetName, questions: null, loadPromise: null })),
+            ja: [{ title: 'Từ vựng Tiếng Nhật', sheetName: LANG_CONFIG.ja.sheetName, questions: null, loadPromise: null }],
+            zh: [{ title: 'Từ vựng Tiếng Trung', sheetName: LANG_CONFIG.zh.sheetName, questions: null, loadPromise: null }]
+        };
+
+        function getBuiltInQuestionSetsForCurrentLanguage() {
+            return BUILT_IN_QUESTION_SETS[currentLang] || BUILT_IN_QUESTION_SETS.en;
+        }
 
         let currentQuestionWrongAttempts = []; // Lưu các lần trả lời sai bằng mic hoặc bàn phím
         let timerInterval = null; // Biến lưu bộ đếm thời gian
@@ -1926,6 +1932,7 @@
         function switchScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+            document.getElementById('lang-select').disabled = screenId === 'game-screen' && gameMode === 'free';
             if (screenId === 'mode-screen') {
                 document.getElementById('game-config-bar').style.display = 'none';
             }
@@ -1983,7 +1990,7 @@
             const container = document.getElementById('built-in-question-sets');
             selectedBuiltInQuestionSet = null;
             container.replaceChildren();
-            BUILT_IN_QUESTION_SETS.forEach((questionSet, setIndex) => {
+            getBuiltInQuestionSetsForCurrentLanguage().forEach((questionSet, setIndex) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'question-set-card';
@@ -2009,7 +2016,7 @@
         }
 
         async function getBuiltInQuestionSetQuestions(setIndex) {
-            const questionSet = BUILT_IN_QUESTION_SETS[setIndex];
+            const questionSet = getBuiltInQuestionSetsForCurrentLanguage()[setIndex];
             if (!questionSet.loadPromise) {
                 const apiUrl = new URL(WEB_APP_URL);
                 apiUrl.searchParams.set('action', 'getVocab');
@@ -2347,7 +2354,7 @@
 
             currentSheetName = selectedBuiltInQuestionSet === null
                 ? 'TuDo'
-                : BUILT_IN_QUESTION_SETS[selectedBuiltInQuestionSet].sheetName;
+                : getBuiltInQuestionSetsForCurrentLanguage()[selectedBuiltInQuestionSet].sheetName;
             rawVocabListFromSheets = pairs.map(pair => ({
                 word: pair.answer,
                 context: pair.question,
@@ -2424,27 +2431,47 @@
         // ==========================================
         // 1. HÀM KIỂM TRA ĐÁP ÁN (ĐÃ NÂNG CẤP)
         // ==========================================
-        // So sánh nguyên văn để giữ khoảng trắng, rồi gom các phần sai/thiếu thành cụm dễ đọc.
+        // So sánh theo từ để tránh ghép các ký tự giống nhau ở những chỗ không liên quan.
         function highlightDiff(userAnswer, correctAnswer, displayAnswer = correctAnswer) {
             const feedbackArea = document.getElementById('feedback-area');
-            const userChars = Array.from(String(userAnswer || '').normalize('NFC'));
-            const correctChars = Array.from(String(correctAnswer || '').normalize('NFC'));
-            const comparableUserChars = userChars.map(char => char.toLocaleLowerCase());
-            const comparableCorrectChars = correctChars.map(char => char.toLocaleLowerCase());
-            const rows = userChars.length + 1;
-            const cols = correctChars.length + 1;
+            const isCjk = currentLang === 'ja' || currentLang === 'zh';
+            const wordSeparator = isCjk ? '' : ' ';
+            const splitWords = value => {
+                const text = String(value || '').normalize('NFKC').trim();
+                if (!text) return [];
+                if (!isCjk) return text.split(/\s+/u);
+
+                if (typeof Intl.Segmenter === 'function') {
+                    const segmenter = new Intl.Segmenter(currentLang === 'ja' ? 'ja' : 'zh-CN', { granularity: 'word' });
+                    const words = [];
+                    for (const part of segmenter.segment(text)) {
+                        if (/^\s+$/u.test(part.segment)) continue;
+                        if (!part.isWordLike && words.length > 0) words[words.length - 1] += part.segment;
+                        else words.push(part.segment);
+                    }
+                    return words;
+                }
+                return Array.from(text);
+            };
+            const comparisonKey = word => word.toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+            const userWords = splitWords(userAnswer);
+            const correctWords = splitWords(correctAnswer);
+            const userKeys = userWords.map(comparisonKey);
+            const correctKeys = correctWords.map(comparisonKey);
+            const rows = userWords.length + 1;
+            const cols = correctWords.length + 1;
             const editDistance = Array.from({ length: rows }, () => Array(cols).fill(0));
 
-            for (let i = userChars.length - 1; i >= 0; i--) {
-                editDistance[i][correctChars.length] = userChars.length - i;
+            for (let i = userWords.length - 1; i >= 0; i--) {
+                editDistance[i][correctWords.length] = userWords.length - i;
             }
-            for (let j = correctChars.length - 1; j >= 0; j--) {
-                editDistance[userChars.length][j] = correctChars.length - j;
+            for (let j = correctWords.length - 1; j >= 0; j--) {
+                editDistance[userWords.length][j] = correctWords.length - j;
             }
 
-            for (let i = userChars.length - 1; i >= 0; i--) {
-                for (let j = correctChars.length - 1; j >= 0; j--) {
-                    editDistance[i][j] = comparableUserChars[i] === comparableCorrectChars[j]
+            for (let i = userWords.length - 1; i >= 0; i--) {
+                for (let j = correctWords.length - 1; j >= 0; j--) {
+                    editDistance[i][j] = userKeys[i] === correctKeys[j]
                         ? editDistance[i + 1][j + 1]
                         : 1 + Math.min(
                             editDistance[i + 1][j + 1],
@@ -2457,73 +2484,69 @@
             const diffLine = document.createElement('div');
             diffLine.className = 'answer-diff';
             diffLine.append('Bạn nhập: ');
+            const missingLine = document.createElement('div');
+            missingLine.className = 'answer-diff';
+            missingLine.append('Còn thiếu: ');
             let i = 0;
             let j = 0;
-            let currentKind = null;
-            let currentText = '';
-
-            const flushDiffChunk = () => {
-                if (!currentText) return;
-                const span = document.createElement('span');
-                span.className = currentKind === 'correct' ? 'diff-correct'
-                    : currentKind === 'missing' ? 'diff-missing' : 'diff-wrong';
-                if (currentKind === 'missing') {
-                    span.textContent = `⟦${currentText.replace(/\s/g, '␠')}⟧`;
-                    span.setAttribute('aria-label', `Thiếu: ${currentText}`);
+            const missingWords = [];
+            const appendUserWord = (word, kind) => {
+                const last = diffLine.lastElementChild;
+                if (last && last.dataset.diffKind === kind) {
+                    last.textContent += wordSeparator + word;
                 } else {
-                    span.textContent = currentText;
-                    if (currentKind === 'wrong') {
-                        span.setAttribute('aria-label', `Bạn nhập sai/thừa: ${currentText}`);
-                    }
+                    if (last) diffLine.append(wordSeparator);
+                    const span = document.createElement('span');
+                    span.className = kind === 'correct' ? 'diff-correct' : 'diff-wrong';
+                    span.dataset.diffKind = kind;
+                    span.textContent = word;
+                    diffLine.appendChild(span);
                 }
-                diffLine.appendChild(span);
-                currentText = '';
             };
 
-            const addDiffChar = (kind, char) => {
-                if (currentKind !== kind) {
-                    flushDiffChunk();
-                    currentKind = kind;
-                }
-                currentText += char;
-            };
-
-            while (i < userChars.length || j < correctChars.length) {
-                if (i < userChars.length && j < correctChars.length &&
-                    comparableUserChars[i] === comparableCorrectChars[j]) {
-                    addDiffChar('correct', userChars[i]);
+            while (i < userWords.length || j < correctWords.length) {
+                if (i < userWords.length && j < correctWords.length && userKeys[i] === correctKeys[j]) {
+                    appendUserWord(userWords[i], 'correct');
                     i++;
                     j++;
-                } else if (i < userChars.length && j < correctChars.length &&
+                } else if (i < userWords.length && j < correctWords.length &&
                     editDistance[i][j] === editDistance[i + 1][j + 1] + 1 &&
                     editDistance[i][j] < editDistance[i][j + 1] + 1 &&
                     editDistance[i][j] < editDistance[i + 1][j] + 1) {
-                    // Ký tự người học nhập sai vị trí này (thay cho ký tự chuẩn).
-                    addDiffChar('wrong', userChars[i]);
+                    // Từ nhập sai thay cho từ chuẩn: tô đỏ ở dòng nhập và liệt kê từ cần có.
+                    appendUserWord(userWords[i], 'wrong');
+                    missingWords.push(correctWords[j]);
                     i++;
                     j++;
-                } else if (j < correctChars.length &&
-                    (i === userChars.length || editDistance[i][j] === editDistance[i][j + 1] + 1)) {
-                    // Hiển thị ký tự chuẩn bị thiếu ngay tại vị trí cần có.
-                    addDiffChar('missing', correctChars[j]);
+                } else if (j < correctWords.length &&
+                    (i === userWords.length || editDistance[i][j] === editDistance[i][j + 1] + 1)) {
+                    missingWords.push(correctWords[j]);
                     j++;
                 } else {
-                    // Ký tự thừa trong câu trả lời.
-                    addDiffChar('wrong', userChars[i]);
+                    // Từ thừa trong câu trả lời.
+                    appendUserWord(userWords[i], 'wrong');
                     i++;
                 }
             }
-            flushDiffChunk();
+
+            if (missingWords.length > 0) {
+                const missingSpan = document.createElement('span');
+                missingSpan.className = 'diff-missing';
+                missingSpan.textContent = missingWords.join(wordSeparator);
+                missingLine.appendChild(missingSpan);
+            } else {
+                missingLine.append('Không thiếu từ.');
+            }
 
             const diffLegend = document.createElement('div');
             diffLegend.className = 'diff-legend';
-            diffLegend.textContent = 'Màu đỏ: phần sai hoặc thừa · ⟦...⟧: phần bị thiếu';
+            diffLegend.textContent = 'Đỏ ở dòng “Bạn nhập” là phần sai/thừa; dòng “Còn thiếu” là từ/cụm từ cần bổ sung.';
 
             const correctLine = document.createElement('div');
             correctLine.className = 'correct-answer';
             correctLine.textContent = `Đáp án đúng: ${displayAnswer}`;
 
-            feedbackArea.replaceChildren(diffLine, diffLegend, correctLine);
+            feedbackArea.replaceChildren(diffLine, missingLine, diffLegend, correctLine);
             feedbackArea.className = 'feedback error';
         }
 
@@ -2536,6 +2559,12 @@
         }
 
         function normalizeAnswerForComparison(value) {
+            if (currentLang === 'ja' || currentLang === 'zh') {
+                const locale = currentLang === 'ja' ? 'ja' : 'zh-CN';
+                return String(value || '').normalize('NFKC').toLocaleLowerCase(locale)
+                    .replace(/[^\p{L}\p{N}]/gu, '');
+            }
+
             const smallNumbers = {
                 zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
                 seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
@@ -2942,8 +2971,8 @@
             // 4. Khởi tạo giọng đọc
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
             // Chế độ tự học mặc định ưu tiên giọng Google UK English Male.
-            utterance.lang = isFreeGame ? 'en-GB' : LANG_CONFIG[currentLang].speechLang;
-            if (isFreeGame) {
+            utterance.lang = LANG_CONFIG[currentLang].speechLang;
+            if (isFreeGame && currentLang === 'en') {
                 const googleUkMale = window.speechSynthesis.getVoices()
                     .find(voice => voice.name === 'Google UK English Male');
                 if (googleUkMale) utterance.voice = googleUkMale;
@@ -3058,13 +3087,20 @@
 
             // 1. Tự động đổi Font chữ cho phù hợp với ngôn ngữ (Kanji/Hanzi bo tròn đẹp mắt)
             document.body.style.fontFamily = config.font;
+            document.getElementById('guided-mode-subtitle').textContent =
+                `Luyện phản xạ phát âm ${config.subjectName} chuẩn xác`;
 
             // 2. Tự động cập nhật ngôn ngữ cho Mic thu âm (SpeechRecognition)
             if (typeof recognition !== 'undefined') {
                 recognition.lang = config.speechLang;
             }
 
-            if (gameMode === 'free') return;
+            if (gameMode === 'free') {
+                if (document.getElementById('free-setup-screen').classList.contains('active')) {
+                    renderBuiltInQuestionSets();
+                }
+                return;
+            }
 
             if (!document.getElementById('game-screen').classList.contains('active')) {
                 document.getElementById('sheet-name').value = config.sheetName;
