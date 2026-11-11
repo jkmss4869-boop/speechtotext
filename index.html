@@ -638,7 +638,8 @@
         .answer-diff {
             margin-top: 8px;
             line-height: 1.9;
-            word-break: break-word;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
         .diff-correct {
@@ -663,6 +664,12 @@
             padding: 1px 3px;
             font-weight: 800;
             text-decoration: underline;
+        }
+
+        .diff-legend {
+            margin-top: 6px;
+            color: #6b7280;
+            font-size: 0.82rem;
         }
 
         .correct-answer {
@@ -2417,11 +2424,13 @@
         // ==========================================
         // 1. HÀM KIỂM TRA ĐÁP ÁN (ĐÃ NÂNG CẤP)
         // ==========================================
-        // Hiển thị ký tự sai và chèn ký tự bị thiếu vào vị trí cần có trong câu trả lời.
+        // So sánh nguyên văn để giữ khoảng trắng, rồi gom các phần sai/thiếu thành cụm dễ đọc.
         function highlightDiff(userAnswer, correctAnswer, displayAnswer = correctAnswer) {
             const feedbackArea = document.getElementById('feedback-area');
-            const userChars = Array.from(userAnswer);
-            const correctChars = Array.from(correctAnswer);
+            const userChars = Array.from(String(userAnswer || '').normalize('NFC'));
+            const correctChars = Array.from(String(correctAnswer || '').normalize('NFC'));
+            const comparableUserChars = userChars.map(char => char.toLocaleLowerCase());
+            const comparableCorrectChars = correctChars.map(char => char.toLocaleLowerCase());
             const rows = userChars.length + 1;
             const cols = correctChars.length + 1;
             const editDistance = Array.from({ length: rows }, () => Array(cols).fill(0));
@@ -2435,7 +2444,7 @@
 
             for (let i = userChars.length - 1; i >= 0; i--) {
                 for (let j = correctChars.length - 1; j >= 0; j--) {
-                    editDistance[i][j] = userChars[i] === correctChars[j]
+                    editDistance[i][j] = comparableUserChars[i] === comparableCorrectChars[j]
                         ? editDistance[i + 1][j + 1]
                         : 1 + Math.min(
                             editDistance[i + 1][j + 1],
@@ -2450,42 +2459,71 @@
             diffLine.append('Bạn nhập: ');
             let i = 0;
             let j = 0;
-            while (i < userChars.length || j < correctChars.length) {
-                const char = document.createElement('span');
+            let currentKind = null;
+            let currentText = '';
 
-                if (i < userChars.length && j < correctChars.length && userChars[i] === correctChars[j]) {
-                    char.className = 'diff-correct';
-                    char.textContent = userChars[i];
+            const flushDiffChunk = () => {
+                if (!currentText) return;
+                const span = document.createElement('span');
+                span.className = currentKind === 'correct' ? 'diff-correct'
+                    : currentKind === 'missing' ? 'diff-missing' : 'diff-wrong';
+                if (currentKind === 'missing') {
+                    span.textContent = `⟦${currentText.replace(/\s/g, '␠')}⟧`;
+                    span.setAttribute('aria-label', `Thiếu: ${currentText}`);
+                } else {
+                    span.textContent = currentText;
+                    if (currentKind === 'wrong') {
+                        span.setAttribute('aria-label', `Bạn nhập sai/thừa: ${currentText}`);
+                    }
+                }
+                diffLine.appendChild(span);
+                currentText = '';
+            };
+
+            const addDiffChar = (kind, char) => {
+                if (currentKind !== kind) {
+                    flushDiffChunk();
+                    currentKind = kind;
+                }
+                currentText += char;
+            };
+
+            while (i < userChars.length || j < correctChars.length) {
+                if (i < userChars.length && j < correctChars.length &&
+                    comparableUserChars[i] === comparableCorrectChars[j]) {
+                    addDiffChar('correct', userChars[i]);
                     i++;
                     j++;
                 } else if (i < userChars.length && j < correctChars.length &&
-                    editDistance[i][j] === editDistance[i + 1][j + 1] + 1) {
+                    editDistance[i][j] === editDistance[i + 1][j + 1] + 1 &&
+                    editDistance[i][j] < editDistance[i][j + 1] + 1 &&
+                    editDistance[i][j] < editDistance[i + 1][j] + 1) {
                     // Ký tự người học nhập sai vị trí này (thay cho ký tự chuẩn).
-                    char.className = 'diff-wrong';
-                    char.textContent = userChars[i];
+                    addDiffChar('wrong', userChars[i]);
                     i++;
                     j++;
                 } else if (j < correctChars.length &&
                     (i === userChars.length || editDistance[i][j] === editDistance[i][j + 1] + 1)) {
                     // Hiển thị ký tự chuẩn bị thiếu ngay tại vị trí cần có.
-                    char.className = 'diff-missing';
-                    char.textContent = `⟦${correctChars[j]}⟧`;
-                    char.setAttribute('aria-label', `Thiếu ký tự ${correctChars[j]}`);
+                    addDiffChar('missing', correctChars[j]);
                     j++;
                 } else {
                     // Ký tự thừa trong câu trả lời.
-                    char.className = 'diff-wrong';
-                    char.textContent = userChars[i];
+                    addDiffChar('wrong', userChars[i]);
                     i++;
                 }
-                diffLine.appendChild(char);
             }
+            flushDiffChunk();
+
+            const diffLegend = document.createElement('div');
+            diffLegend.className = 'diff-legend';
+            diffLegend.textContent = 'Màu đỏ: phần sai hoặc thừa · ⟦...⟧: phần bị thiếu';
 
             const correctLine = document.createElement('div');
             correctLine.className = 'correct-answer';
             correctLine.textContent = `Đáp án đúng: ${displayAnswer}`;
 
-            feedbackArea.replaceChildren(diffLine, correctLine);
+            feedbackArea.replaceChildren(diffLine, diffLegend, correctLine);
             feedbackArea.className = 'feedback error';
         }
 
@@ -2508,7 +2546,48 @@
                 twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
                 seventy: 70, eighty: 80, ninety: 90
             };
-            const tokens = String(value || '').toLowerCase()
+            const ordinalWords = {
+                first: 'one', second: 'two', third: 'three', fourth: 'four', fifth: 'five',
+                sixth: 'six', seventh: 'seven', eighth: 'eight', ninth: 'nine', tenth: 'ten',
+                eleventh: 'eleven', twelfth: 'twelve', thirteenth: 'thirteen', fourteenth: 'fourteen',
+                fifteenth: 'fifteen', sixteenth: 'sixteen', seventeenth: 'seventeen',
+                eighteenth: 'eighteen', nineteenth: 'nineteen', twentieth: 'twenty',
+                thirtieth: 'thirty', fortieth: 'forty', fiftieth: 'fifty', sixtieth: 'sixty',
+                seventieth: 'seventy', eightieth: 'eighty', ninetieth: 'ninety',
+                hundredth: 'hundred', thousandth: 'thousand', millionth: 'million'
+            };
+            const hourPattern = '(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|\\d{1,2})';
+            const spokenHourPattern = '(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)';
+            let source = String(value || '').toLowerCase().replace(/[’]/g, "'");
+
+            // Common English contraction variants produced by speech recognition.
+            source = source
+                .replace(/\bwon't\b/g, 'will not')
+                .replace(/\bcan't\b/g, 'can not')
+                .replace(/\bain't\b/g, 'is not')
+                .replace(/\b(don't|doesn't|didn't|isn't|aren't|wasn't|weren't|haven't|hasn't|hadn't|wouldn't|couldn't|shouldn't|mustn't)\b/g,
+                    contraction => `${contraction.slice(0, -3)} not`)
+                .replace(/\b(i'm|you're|we're|they're|he's|she's)\b/g, phrase => ({
+                    "i'm": 'i am', "you're": 'you are', "we're": 'we are', "they're": 'they are',
+                    "he's": 'he is', "she's": 'she is'
+                })[phrase])
+                .replace(/\b([ap])\.?\s*m\.?/g, '$1m');
+
+            // Normalize numeric and spoken clock times to the same comparison form.
+            source = source
+                .replace(/(^|[^:\d])(\d{1,2})\s*(am|pm)\b/g,
+                    (_, prefix, hour, period) => `${prefix} clocktime ${hour} 00 ${period} `)
+                .replace(/\b(\d{1,2})\s*:\s*(\d{2})(?:\s*(am|pm))?\b/g,
+                    (_, hour, minute, period = '') => ` clocktime ${hour} ${minute} ${period} `)
+                .replace(new RegExp(`\\b(${hourPattern})\\s+o['’]?\\s*clock\\b`, 'g'),
+                    (_, hour) => ` clocktime ${hour} 00 `)
+                .replace(new RegExp(`\\b(${spokenHourPattern})\\s+(am|pm)\\b`, 'g'),
+                    (_, hour, period) => ` clocktime ${hour} 00 ${period} `);
+
+            const ordinalPattern = new RegExp(`\\b(${Object.keys(ordinalWords).join('|')})\\b`, 'g');
+            const tokens = source
+                .replace(/\b(\d+)(st|nd|rd|th)\b/g, '$1')
+                .replace(ordinalPattern, ordinal => ordinalWords[ordinal])
                 .replace(/degrees?\s*(celsius|centigrade)\b/g, ' c ')
                 .replace(/degrees?\s*fahrenheit\b/g, ' f ')
                 .replace(/celsius|centigrade/g, ' c ')
@@ -2673,7 +2752,7 @@
                 isFirstAttempt = false;
                 currentQuestionWrongAttempts.push(`${userAnswer.trim()} (${inputType === 'speech' ? 'Mic' : 'Gõ'})`);
                 const inputEl = document.getElementById('manual-input');
-                highlightDiff(cleanUserAnswer, feedbackAnswer, displayFeedbackAnswer);
+                highlightDiff(userAnswer, displayFeedbackAnswer, displayFeedbackAnswer);
                 inputEl.classList.add('input-wrong');
             }
         }
