@@ -1425,7 +1425,7 @@
             <!-- NÚT ĐỌC CÂU HỎI (MỚI THÊM VÀO ĐÂY) -->
             <div style="text-align: center; margin-bottom: 20px;">
                 <button id="speaker-btn" class="btn-speaker" onclick="speakContext()" title="Nghe máy đọc mẫu">
-                    🔊 Nghe đọc câu
+                    🔊 Nghe đáp án
                 </button>
             </div>
 
@@ -2391,7 +2391,7 @@
             }
             document.getElementById('context-display').innerHTML = contextText;
 
-            document.getElementById('speaker-btn').innerText = gameMode === 'free' ? '🔊 Nghe đáp án' : '🔊 Nghe đọc câu';
+            document.getElementById('speaker-btn').innerText = '🔊 Nghe đáp án';
             document.getElementById('free-game-help').style.display = gameMode === 'free' ? 'block' : 'none';
 
             // Cập nhật Gợi ý
@@ -2950,29 +2950,20 @@
             const currentVocab = vocabList[currentIndex];
             if (!currentVocab) return;
 
-            const isFreeGame = gameMode === 'free';
             const spokenAnswer = (currentVocab.word || currentVocab.answer || '').trim();
-            if (isFreeGame ? !spokenAnswer : !currentVocab.context) return;
+            if (!spokenAnswer) return;
 
             // 2. Dừng các âm thanh đang đọc dở (nếu có)
             window.speechSynthesis.cancel();
 
-            // 3. Xử lý câu đọc: Thay chỗ trống [____] bằng từ "blank" (hoặc "something") để bé dễ nghe
-            let textToSpeak = isFreeGame
-                ? spokenAnswer
-                : currentVocab.context.replace(/\[____\]|___/g, " blank ");
-
-            // Nếu bé đã trả lời đúng rồi, máy sẽ tự động đọc cả câu hoàn chỉnh có chứa từ chuẩn luôn!
-            const manualInput = document.getElementById('manual-input');
-            if (manualInput.disabled) {
-                textToSpeak = currentVocab.context.replace(/\[____\]|___/g, currentVocab.word);
-            }
+            // Cả hai chế độ đều phát đáp án khi người học bấm nút loa.
+            const textToSpeak = spokenAnswer;
 
             // 4. Khởi tạo giọng đọc
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            // Chế độ tự học mặc định ưu tiên giọng Google UK English Male.
+            // Dùng cùng lựa chọn giọng đọc cho đáp án ở cả hai chế độ.
             utterance.lang = LANG_CONFIG[currentLang].speechLang;
-            if (isFreeGame && currentLang === 'en') {
+            if (currentLang === 'en') {
                 const googleUkMale = window.speechSynthesis.getVoices()
                     .find(voice => voice.name === 'Google UK English Male');
                 if (googleUkMale) utterance.voice = googleUkMale;
@@ -2991,12 +2982,12 @@
 
             utterance.onend = () => {
                 speakerBtn.classList.remove('speaking');
-                speakerBtn.innerHTML = isFreeGame ? "🔊 Nghe đáp án" : "🔊 Nghe đọc câu";
+                speakerBtn.innerHTML = "🔊 Nghe đáp án";
             };
 
             utterance.onerror = () => {
                 speakerBtn.classList.remove('speaking');
-                speakerBtn.innerHTML = isFreeGame ? "🔊 Nghe đáp án" : "🔊 Nghe đọc câu";
+                speakerBtn.innerHTML = "🔊 Nghe đáp án";
             };
 
             // 5. Bắt đầu đọc
