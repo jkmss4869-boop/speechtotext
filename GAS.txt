@@ -1,6 +1,23 @@
 function doGet(e) {
   var action = e.parameter.action;
   var sheetName = e.parameter.sheetName || "Sheet1";
+
+  if (action === "getSaveStatus") {
+    var requestId = String(e.parameter.requestId || "");
+    if (!/^[a-zA-Z0-9-]{10,80}$/.test(requestId)) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "invalid" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var savedStatus = CacheService.getScriptCache().get("saveStatus:" + requestId);
+    return ContentService.createTextOutput(savedStatus || JSON.stringify({ status: "pending" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Khóa bảng học sinh cho tới khi xác thực được người gọi ở phía máy chủ.
+  if (action === "getLeaderboard") {
+    return ContentService.createTextOutput(JSON.stringify({ status: "auth_required" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   
   // 1. API Lấy từ vựng: ?action=getVocab&sheetName=Unit1
   if (action === "getVocab") {
@@ -42,8 +59,11 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  var data = null;
+  var requestId = "";
   try {
-    var data = JSON.parse(e.postData.contents);
+    data = JSON.parse(e.postData.contents);
+    requestId = String(data.requestId || "");
     var action = data.action;
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
@@ -71,31 +91,53 @@ function doPost(e) {
     }
     // 2. API Lưu điểm tổng
     else if (action === "saveScore") {
+      var submittedMode = data.mode === "free" ? "free" : "guided";
+      var submittedName = String(data.name || "").trim();
+      // Chế độ tự học không được gửi kết quả lên Apps Script; chỉ chấp nhận ID học sinh đã đăng ký.
+      if (submittedMode !== "guided" || !isGuidedStudentId(submittedName)) {
+        setSaveStatus(requestId, "ignored");
+        return ContentService.createTextOutput(JSON.stringify({ status: "ignored" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
       var sheet = ss.getSheetByName("Scores") || ss.insertSheet("Scores");
       // Nếu chưa có header thì tạo header
       if (sheet.getLastRow() === 0) {
-        sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Game Type", "Điểm đạt", "Tổng điểm"]);
+        sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Game Type", "Điểm đạt", "Tổng điểm", "Thời lượng (giây)", "Chế độ"]);
       }
+      var submittedDuration = Math.max(0, Math.floor(Number(data.duration) || 0));
       sheet.appendRow([
         new Date(),
-        data.name,
-        data.sheetName,
-        data.gameType,
-        data.score,
-        data.total
+        safeFeedbackCell(submittedName.slice(0, 40)),
+        safeFeedbackCell(String(data.sheetName || "").slice(0, 100)),
+        safeFeedbackCell(String(data.gameType || "Speech Reflex").slice(0, 80)),
+        Number(data.score) || 0,
+        Number(data.total) || 0,
+        submittedDuration,
+        submittedMode
       ]);
-      UrlFetchApp.fetch("https://script.google.com/macros/s/AKfycbwJ3d4lCV4MS1Ks6HuGaIPQfv-X6Gn0c5UV3WV-mxge9NUgt1vCkEEJcXFx9YwOEg_S/exec", { method: "post" });
+      CacheService.getScriptCache().remove("guidedLeaderboard");
+      try {
+        UrlFetchApp.fetch("https://script.google.com/macros/s/AKfycbwJ3d4lCV4MS1Ks6HuGaIPQfv-X6Gn0c5UV3WV-mxge9NUgt1vCkEEJcXFx9YwOEg_S/exec", { method: "post" });
+      } catch (syncError) {
+        console.warn("Đã lưu điểm nhưng đồng bộ phụ thất bại:", syncError);
+      }
+      setSaveStatus(requestId, "score_saved");
 
     } 
     // 3. API Lưu chi tiết từng câu
     else if (action === "saveDetailList") {
+      if (!isGuidedStudentId(data.name)) {
+        setSaveStatus(requestId, "ignored");
+        return ContentService.createTextOutput(JSON.stringify({ status: "ignored" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
       var sheet = ss.getSheetByName("Details") || ss.insertSheet("Details");
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Ngữ cảnh câu", "Từ chuẩn", "Học sinh trả lời", "Đúng/Sai", "Điểm", "Lịch sử đọc sai (STT)"]);
       }
       
       var time = new Date();
-      var details = data.details;
+      var details = data.details || [];
       for (var i = 0; i < details.length; i++) {
         sheet.appendRow([
           time,
@@ -109,6 +151,7 @@ function doPost(e) {
           details[i].wrongAttempts || "Không có"
         ]);
       }
+      setSaveStatus(requestId, "saved");
     }
     else {
       throw new Error("Unsupported action");
@@ -118,13 +161,27 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
+    setSaveStatus(requestId, "error", error.toString());
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function setSaveStatus(requestId, status, message) {
+  if (!/^[a-zA-Z0-9-]{10,80}$/.test(String(requestId || ""))) return;
+  var result = { status: status };
+  if (message) result.message = String(message).slice(0, 180);
+  CacheService.getScriptCache().put("saveStatus:" + requestId, JSON.stringify(result), 300);
 }
 
 // Tránh hiểu nội dung góp ý bắt đầu bằng ký hiệu công thức thành công thức trong Sheets.
 function safeFeedbackCell(value) {
   var text = String(value || "");
   return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function isGuidedStudentId(value) {
+  var allowedIds = ["trinh", "duong gia dat", "minh", "vy"];
+  var normalized = String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return allowedIds.indexOf(normalized) !== -1;
 }

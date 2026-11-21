@@ -707,6 +707,22 @@
             font-weight: 700;
         }
 
+        .leaderboard-panel {
+            margin: 18px 0;
+            padding: 16px;
+            border: 1px solid #e5defa;
+            border-radius: 16px;
+            background: #faf8ff;
+            text-align: left;
+        }
+
+        .leaderboard-panel h3 { margin-bottom: 8px; color: var(--primary-dark); }
+        .leaderboard-note { margin-bottom: 10px; color: #6b7280; font-size: .85rem; }
+        .leaderboard-table-wrap { overflow-x: auto; }
+        .leaderboard-table { min-width: 460px; }
+        .leaderboard-table th, .leaderboard-table td { padding: 9px 8px; }
+        .leaderboard-status { padding: 12px 4px; color: #6b7280; text-align: center; }
+
         .table-responsive {
             max-height: 250px;
             overflow-y: auto;
@@ -1340,6 +1356,7 @@
             <button id="guided-start-button" class="btn btn-primary" onclick="startGame()" disabled>
                 <span>Bắt đầu luyện tập</span> 🚀
             </button>
+            <button id="guided-rank-button" class="btn btn-secondary" onclick="showLeaderboard('setup-screen', 'guided')" hidden>🏆 Xem bảng xếp hạng học sinh</button>
             <button class="btn btn-secondary" onclick="switchScreen('mode-screen')">← Chọn chế độ khác</button>
         </div>
 
@@ -1353,6 +1370,10 @@
                     <li>Bắt đầu chơi, rồi trả lời bằng mic hoặc bàn phím.</li>
                     <li>Khi game chấm xong, bấm “Câu tiếp theo”.</li>
                 </ol>
+            </div>
+            <div class="form-group">
+                <label for="free-player-name">Tên hiển thị trên bảng xếp hạng:</label>
+                <input id="free-player-name" class="form-control" type="text" maxlength="40" placeholder="Nhập tên của bạn..." autocomplete="nickname" required>
             </div>
             <div id="built-in-question-sets" role="group" aria-label="Chọn một bộ câu hỏi có sẵn"></div>
             <div class="form-group">
@@ -1391,7 +1412,24 @@
             <button class="btn btn-primary" onclick="startFreeGame()">
                 <span>Bắt đầu chơi</span> 🚀
             </button>
+            <button class="btn btn-secondary" onclick="showLeaderboard('free-setup-screen', 'free')">🏆 Xem bảng xếp hạng tự học</button>
             <button class="btn btn-secondary" onclick="switchScreen('mode-screen')">← Chọn chế độ khác</button>
+        </div>
+
+        <div id="leaderboard-screen" class="screen">
+            <h1 id="leaderboard-title" class="title">🏆 Bảng xếp hạng</h1>
+            <p class="subtitle">Điểm cao hơn xếp trước; nếu bằng điểm thì thời gian ngắn hơn đứng trên.</p>
+            <div class="leaderboard-panel">
+                <div id="leaderboard-status" class="leaderboard-status" aria-live="polite">Đang tải bảng xếp hạng...</div>
+                <div class="leaderboard-table-wrap">
+                    <table class="leaderboard-table">
+                        <thead><tr><th>Hạng</th><th>Người chơi</th><th>Chế độ</th><th>Điểm</th><th>Thời gian</th></tr></thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="refreshLeaderboard()">↻ Làm mới</button>
+            <button id="leaderboard-back-button" class="btn btn-secondary" onclick="switchScreen('mode-screen')">← Quay lại</button>
         </div>
 
         <div id="game-screen" class="screen">
@@ -1490,6 +1528,8 @@
 
                 <div id="save-status" style="margin-bottom: 15px; font-weight: 600;"></div>
 
+                <button class="btn btn-secondary" onclick="showLeaderboard('result-screen')">🏆 Xem thứ hạng của bạn</button>
+
                 <button class="btn btn-primary" onclick="location.reload()">
                     <span>Luyện tập lại bài này</span> 🔄
                 </button>
@@ -1498,7 +1538,7 @@
         <footer class="site-footer">
             <details class="privacy-note">
                 <summary>🛡️ Lưu ý về quyền riêng tư</summary>
-                <p>Trên máy tính, chế độ chơi tự học (Public Mode) giữ bản ghi âm tạm thời trong bộ nhớ phiên chơi để bạn nghe lại; game không tải bản ghi này lên Google Sheets/Drive. Trên điện thoại, game ưu tiên nhận diện giọng nói nên không tạo bản nghe lại để tránh xung đột quyền truy cập micro. Tùy trình duyệt, âm thanh dùng để nhận diện có thể được gửi tới dịch vụ trực tuyến. Tính năng lưu trữ bản ghi âm lâu dài chỉ dành cho tài khoản Học viên nội bộ có mã xác thực.</p>
+                <p>Chế độ tự học chỉ giữ tạm tên hiển thị, điểm và thời gian trong bộ nhớ phiên trình duyệt để tạo bảng xếp hạng; dữ liệu không được gửi lên Google Sheets và sẽ mất khi tải lại trang. Bản ghi âm trên máy tính cũng chỉ giữ tạm trong phiên để bạn nghe lại. Trên điện thoại, game ưu tiên nhận diện giọng nói nên không tạo bản nghe lại để tránh xung đột quyền truy cập micro. Tùy trình duyệt, âm thanh dùng để nhận diện có thể được gửi tới dịch vụ trực tuyến. Chế độ học với giáo viên tiếp tục lưu kết quả, chi tiết và bản ghi âm cho học viên nội bộ có mã xác thực đã đăng ký.</p>
             </details>
             <p>© 2026 Speech Reflex Game. Developed by Vy. All rights reserved.</p>
         </footer>
@@ -1609,7 +1649,7 @@
         const DRIVE_FOLDER_ID = "1vfDqA0BPOnmSa2DsKm13XhAYKdKUXrod"; // Thư mục lưu audio trên Google Drive
 
         // Danh sách ID được giao diện cho phép vào chế độ có hướng dẫn.
-        const GUIDED_STUDENT_IDS = new Set(['trinh', 'duong gia dat', 'minh']);
+        const GUIDED_STUDENT_IDS = new Set(['trinh', 'duong gia dat', 'minh', 'vy']);
 
         const BUILT_IN_QUESTION_SETS = {
             en: [
@@ -1630,12 +1670,17 @@
         let currentQuestionWrongAttempts = []; // Lưu các lần trả lời sai bằng mic hoặc bàn phím
         let timerInterval = null; // Biến lưu bộ đếm thời gian
         let timeRemaining = 0;    // Số giây còn lại
+        let gameStartedAt = 0;
+        let elapsedSeconds = 0;
         let vocabList = [];
         let currentIndex = 0;
         let score = 0;
         let detailedAnswers = [];
         let isFirstAttempt = true;
         let studentName = "";
+        let freeSessionLeaderboard = [];
+        let leaderboardMode = 'free';
+        let leaderboardLessonId = '';
         let currentSheetName = "";
         let isShuffleMode = true;      // true: Xáo trộn câu hỏi, false: Theo thứ tự Sheets
         let isKeywordOnlyMode = true;  // true: Chỉ cần nói có chứa từ khóa (word), false: Phải nói khớp đúng cả câu ngữ cảnh (context)
@@ -1956,6 +2001,76 @@
             switchScreen(mode === 'free' ? 'free-setup-screen' : 'setup-screen');
         }
 
+        function showLeaderboard(returnScreen = 'mode-screen', mode = gameMode === 'free' ? 'free' : 'guided') {
+            document.getElementById('leaderboard-back-button').onclick = () => switchScreen(returnScreen);
+            switchScreen('leaderboard-screen');
+            leaderboardMode = mode === 'guided' ? 'guided' : 'free';
+            leaderboardLessonId = leaderboardMode === 'guided'
+                ? (returnScreen === 'result-screen' ? currentSheetName : document.getElementById('sheet-name').value.trim())
+                : (returnScreen === 'result-screen' ? currentSheetName : getFreeLessonIdForLeaderboard());
+            document.getElementById('leaderboard-title').textContent = leaderboardMode === 'free'
+                ? '🏆 Bảng xếp hạng tự học'
+                : '🏆 Bảng xếp hạng học sinh';
+            document.querySelector('#leaderboard-screen .subtitle').textContent =
+                `Bài học: ${leaderboardLessonId || 'Chưa chọn'} · điểm cao hơn xếp trước; nếu bằng điểm thì thời gian ngắn hơn đứng trên.`;
+            refreshLeaderboard();
+        }
+
+        function getFreeLessonIdForLeaderboard() {
+            if (selectedBuiltInQuestionSet !== null) {
+                return getBuiltInQuestionSetsForCurrentLanguage()[selectedBuiltInQuestionSet].sheetName;
+            }
+            return 'TuDo';
+        }
+
+        async function refreshLeaderboard() {
+            const status = document.getElementById('leaderboard-status');
+            const tbody = document.getElementById('leaderboard-body');
+            status.textContent = 'Đang tải bảng xếp hạng...';
+            tbody.replaceChildren();
+            if (leaderboardMode === 'free') {
+                const lessonRows = freeSessionLeaderboard.filter(row => normalizeStudentId(row.sheetName) === normalizeStudentId(leaderboardLessonId));
+                renderLeaderboardRows(lessonRows, status, tbody, `Chưa có lượt tự học nào cho bài “${leaderboardLessonId}” trong phiên này. Kết quả tự học không được gửi hay lưu tập trung.`);
+                return;
+            }
+            try {
+                const url = new URL(WEB_APP_URL);
+                url.searchParams.set('action', 'getLeaderboard');
+                url.searchParams.set('lessonId', leaderboardLessonId);
+                const response = await fetch(url.toString());
+                if (!response.ok) throw new Error('Không kết nối được bảng xếp hạng.');
+                const rows = await response.json();
+                if (rows && rows.status === 'auth_required') {
+                    status.textContent = 'Bảng xếp hạng học sinh đang khóa để bảo vệ quyền riêng tư. Cần bật đăng nhập Google trước khi mở lại.';
+                    return;
+                }
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    status.textContent = 'Chưa có kết quả nào. Hãy hoàn thành một lượt chơi để có tên trên bảng!';
+                    return;
+                }
+                renderLeaderboardRows(rows.filter(row => row.mode !== 'free' && normalizeStudentId(row.sheetName) === normalizeStudentId(leaderboardLessonId)), status, tbody, `Chưa có kết quả học sinh cho bài “${leaderboardLessonId}”.`);
+            } catch (error) {
+                console.error('Lỗi tải bảng xếp hạng:', error);
+                status.textContent = 'Chưa tải được bảng xếp hạng. Hãy kiểm tra kết nối hoặc cấu hình Apps Script.';
+            }
+        }
+
+        function renderLeaderboardRows(rows, status, tbody, emptyMessage) {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                status.textContent = emptyMessage;
+                return;
+            }
+            rows.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                [index + 1, row.name || 'Người chơi', row.mode === 'free' ? 'Tự học' : 'Với giáo viên', `${row.score} / ${row.total}`, Number(row.duration) > 0 ? formatTime(Number(row.duration)) : '—']
+                    .forEach(value => { const td = document.createElement('td'); td.textContent = value; tr.appendChild(td); });
+                tbody.appendChild(tr);
+            });
+            status.textContent = leaderboardMode === 'free'
+                ? `Top ${rows.length} người chơi bài “${leaderboardLessonId}” · thứ hạng chỉ có hiệu lực trong phiên trình duyệt hiện tại.`
+                : `Top ${rows.length} học sinh bài “${leaderboardLessonId}” · mỗi em lấy thành tích tốt nhất của bài này.`;
+        }
+
         function normalizeStudentId(value) {
             return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
         }
@@ -1981,6 +2096,7 @@
             const isAllowed = GUIDED_STUDENT_IDS.has(studentId);
 
             startButton.disabled = !isAllowed;
+            document.getElementById('guided-rank-button').hidden = !isAllowed;
             status.textContent = !studentId
                 ? 'Nhập ID học sinh được cấp để bắt đầu.'
                 : (isAllowed ? 'ID hợp lệ.' : 'ID không hợp lệ.');
@@ -2215,6 +2331,7 @@
         async function prepareGameSession() {
             currentIndex = 0;
             score = 0;
+            elapsedSeconds = 0;
             detailedAnswers = [];
             initSpeechRecognition();
 
@@ -2232,6 +2349,7 @@
             hideLoading();
             switchScreen('game-screen');
             startTimer(vocabList.length * 90);
+            gameStartedAt = Date.now();
             loadQuestion();
         }
 
@@ -2302,6 +2420,13 @@
         }
 
         async function startFreeGame() {
+            const enteredName = document.getElementById('free-player-name').value.trim();
+            if (!enteredName) {
+                alert('Vui lòng nhập tên hiển thị để tham gia bảng xếp hạng.');
+                document.getElementById('free-player-name').focus();
+                return;
+            }
+            studentName = enteredName.slice(0, 40);
             let pairs = [];
             if (selectedBuiltInQuestionSet !== null) {
                 showLoading("Đang tải bộ câu hỏi...");
@@ -2807,6 +2932,7 @@
         // ==========================================
         async function endGame() {
             if (timerInterval) clearInterval(timerInterval);
+            elapsedSeconds = Math.max(1, Math.floor((Date.now() - gameStartedAt) / 1000));
             switchScreen('result-screen');
             const maxScore = vocabList.length * 10;
             const scorePercent = maxScore ? Math.round(score / maxScore * 100) : 0;
@@ -2847,8 +2973,21 @@
             });
 
             if (gameMode === 'free') {
-                document.getElementById('result-student-name').innerText = 'Chế độ tự học · kết quả chỉ hiển thị trong phiên này.';
-                document.getElementById('save-status').innerText = 'Điểm, câu trả lời và bản ghi âm (nếu có) chỉ được giữ tạm trong phiên này; game không gửi dữ liệu lên Google Sheets/Drive.';
+                document.getElementById('result-student-name').innerText = `Người chơi: ${studentName} · Chế độ tự học`;
+                const freeResult = { name: studentName, score, total: maxScore, duration: elapsedSeconds, mode: 'free', sheetName: currentSheetName };
+                const previousIndex = freeSessionLeaderboard.findIndex(row =>
+                    row.name.toLowerCase() === studentName.toLowerCase() &&
+                    normalizeStudentId(row.sheetName) === normalizeStudentId(currentSheetName));
+                if (previousIndex < 0) {
+                    freeSessionLeaderboard.push(freeResult);
+                } else {
+                    const previous = freeSessionLeaderboard[previousIndex];
+                    if (score > previous.score || (score === previous.score && elapsedSeconds < previous.duration)) {
+                        freeSessionLeaderboard[previousIndex] = freeResult;
+                    }
+                }
+                freeSessionLeaderboard.sort((a, b) => b.score - a.score || a.duration - b.duration);
+                document.getElementById('save-status').innerText = 'Kết quả chỉ được giữ tạm trong phiên này để tạo bảng xếp hạng tự học. Game không gửi tên, điểm hay thời gian lên Apps Script.';
                 document.getElementById('save-status').style.color = '#6b7280';
             } else {
                 document.getElementById('result-student-name').innerText = `Học sinh: ${studentName}`;
@@ -2870,14 +3009,16 @@
         }
 
         async function saveResultsToGAS() {
-            if (!isAuthorizedGuidedStudent()) return;
+            if (gameMode !== 'guided' || !isAuthorizedGuidedStudent()) return;
             const statusEl = document.getElementById('save-status');
-            statusEl.innerText = "⏳ Đang đồng bộ kết quả & file ghi âm về Google Sheets & Drive...";
+            statusEl.innerText = gameMode === 'free'
+                ? '⏳ Đang lưu tên, điểm và thời gian lên bảng xếp hạng...'
+                : '⏳ Đang đồng bộ kết quả & file ghi âm về Google Sheets & Drive...';
             statusEl.style.color = "#6b7280";
 
-            // 1. Chuẩn bị danh sách chi tiết có kèm dữ liệu audio
+            // Chỉ chế độ có hướng dẫn đồng bộ chi tiết và audio; tự học chỉ lưu điểm và thời lượng.
             const detailsForGAS = [];
-            for (let i = 0; i < detailedAnswers.length; i++) {
+            for (let i = 0; gameMode !== 'free' && i < detailedAnswers.length; i++) {
                 const item = detailedAnswers[i];
                 const cleanStudentName = (studentName || "Student").replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, "_");
                 const cleanWord = (item.targetWord || "Word").replace(/[^a-zA-Z0-9]/g, "_");
@@ -2900,15 +3041,19 @@
 
             const payloadScore = {
                 action: "saveScore",
+                requestId: createSaveRequestId(),
                 sheetName: currentSheetName,
                 name: studentName,
                 score: score,
                 total: vocabList.length * 10,
-                gameType: "Speech Reflex"
+                gameType: "Speech Reflex",
+                mode: gameMode,
+                duration: elapsedSeconds
             };
 
             const payloadDetail = {
                 action: "saveDetailList",
+                requestId: payloadScore.requestId,
                 sheetName: currentSheetName,
                 name: studentName,
                 details: detailsForGAS
@@ -2922,20 +3067,62 @@
                     body: JSON.stringify(payloadScore)
                 });
 
-                await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payloadDetail)
-                });
+                if (gameMode !== 'free') {
+                    await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payloadDetail)
+                    });
+                }
 
-                statusEl.innerText = "✅ Đã lưu điểm, chi tiết & bản ghi âm vào Drive thành công!";
-                statusEl.style.color = "var(--success)";
+                const confirmation = await waitForSaveConfirmation(payloadScore.requestId);
+                if (confirmation && confirmation.status === 'saved') {
+                    statusEl.innerText = '✅ Apps Script đã xác nhận ghi điểm vào Scores và chi tiết vào Details.';
+                    statusEl.style.color = "var(--success)";
+                } else if (confirmation && confirmation.status === 'ignored') {
+                    statusEl.innerText = '❌ Apps Script từ chối lưu: ID học sinh không được cho phép hoặc chế độ không hợp lệ.';
+                    statusEl.style.color = "var(--error)";
+                } else if (confirmation && confirmation.status === 'error') {
+                    statusEl.innerText = `❌ Apps Script báo lỗi khi lưu: ${confirmation.message || 'Lỗi không xác định.'}`;
+                    statusEl.style.color = "var(--error)";
+                } else if (confirmation && confirmation.status === 'score_saved') {
+                    statusEl.innerText = '⚠️ Apps Script xác nhận đã ghi điểm vào Scores, nhưng chưa xác nhận phần chi tiết trong Details.';
+                    statusEl.style.color = "#b45309";
+                } else {
+                    statusEl.innerText = '⚠️ Đã gửi yêu cầu nhưng chưa nhận được xác nhận từ Apps Script. Hãy cập nhật mã Apps Script rồi deploy phiên bản mới.';
+                    statusEl.style.color = "#b45309";
+                }
             } catch (error) {
                 console.error("Lỗi khi lưu điểm:", error);
                 statusEl.innerText = "❌ Không thể lưu điểm về hệ thống (Lỗi kết nối).";
                 statusEl.style.color = "var(--error)";
             }
+        }
+
+        function createSaveRequestId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+        }
+
+        async function waitForSaveConfirmation(requestId) {
+            const url = new URL(WEB_APP_URL);
+            url.searchParams.set('action', 'getSaveStatus');
+            url.searchParams.set('requestId', requestId);
+            for (let attempt = 0; attempt < 6; attempt++) {
+                try {
+                    const response = await fetch(url.toString());
+                    if (!response.ok) throw new Error('Không đọc được trạng thái lưu.');
+                    const result = await response.json();
+                    if (result.status && result.status !== 'pending') return result;
+                } catch (error) {
+                    console.warn('Chưa đọc được xác nhận lưu:', error);
+                }
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            return null;
         }
 
         // ==========================================
