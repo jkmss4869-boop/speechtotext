@@ -13,9 +13,70 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Khóa bảng học sinh cho tới khi xác thực được người gọi ở phía máy chủ.
+  // Bảng học sinh: chỉ trả thành tích của đúng ID bài đang xem.
   if (action === "getLeaderboard") {
-    return ContentService.createTextOutput(JSON.stringify({ status: "auth_required" }))
+    var lessonId = String(e.parameter.lessonId || "").trim();
+    var leaderboard = [];
+    if (!lessonId) {
+      return ContentService.createTextOutput(JSON.stringify(leaderboard))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var cache = CacheService.getScriptCache();
+    var cacheKey = getLeaderboardCacheKey(lessonId);
+    var cachedLeaderboard = cache.get(cacheKey);
+    if (cachedLeaderboard) {
+      return ContentService.createTextOutput(cachedLeaderboard)
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var scoreSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Scores");
+    if (scoreSheet && scoreSheet.getLastRow() > 1) {
+      var scoreRows = scoreSheet.getDataRange().getValues();
+      for (var i = 1; i < scoreRows.length; i++) {
+        var row = scoreRows[i];
+        var rowMode = String(row[7] || "guided");
+        if (rowMode !== "guided" || normalizeLessonId(row[2]) !== normalizeLessonId(lessonId)) continue;
+        var points = Number(row[4]);
+        var total = Number(row[5]);
+        if (!row[1] || !isFinite(points) || !isFinite(total)) continue;
+        var candidate = {
+          name: String(row[1]),
+          sheetName: String(row[2] || ""),
+          score: points,
+          total: total,
+          duration: Number(row[6]) || 0,
+          mode: "guided"
+        };
+        var playerKey = candidate.name.trim().toLowerCase();
+        var existingIndex = -1;
+        for (var j = 0; j < leaderboard.length; j++) {
+          if (leaderboard[j].name.trim().toLowerCase() === playerKey) {
+            existingIndex = j;
+            break;
+          }
+        }
+        if (existingIndex === -1) {
+          leaderboard.push(candidate);
+        } else {
+          var previous = leaderboard[existingIndex];
+          var candidateIsBetter = candidate.score > previous.score ||
+            (candidate.score === previous.score && candidate.duration > 0 &&
+              (previous.duration <= 0 || candidate.duration < previous.duration));
+          if (candidateIsBetter) leaderboard[existingIndex] = candidate;
+        }
+      }
+      leaderboard.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        var aTime = a.duration > 0 ? a.duration : Number.MAX_VALUE;
+        var bTime = b.duration > 0 ? b.duration : Number.MAX_VALUE;
+        return aTime - bTime;
+      });
+      leaderboard = leaderboard.slice(0, 50);
+    }
+    var leaderboardJson = JSON.stringify(leaderboard);
+    cache.put(cacheKey, leaderboardJson, 60);
+    return ContentService.createTextOutput(leaderboardJson)
       .setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -93,8 +154,8 @@ function doPost(e) {
     else if (action === "saveScore") {
       var submittedMode = data.mode === "free" ? "free" : "guided";
       var submittedName = String(data.name || "").trim();
-      // Chế độ tự học không được gửi kết quả lên Apps Script; chỉ chấp nhận ID học sinh đã đăng ký.
-      if (submittedMode !== "guided" || !isGuidedStudentId(submittedName)) {
+      // Chế độ tự học vẫn giữ kết quả trong phiên, không ghi lên Sheets.
+      if (submittedMode !== "guided") {
         setSaveStatus(requestId, "ignored");
         return ContentService.createTextOutput(JSON.stringify({ status: "ignored" }))
           .setMimeType(ContentService.MimeType.JSON);
@@ -115,7 +176,7 @@ function doPost(e) {
         submittedDuration,
         submittedMode
       ]);
-      CacheService.getScriptCache().remove("guidedLeaderboard");
+      CacheService.getScriptCache().remove(getLeaderboardCacheKey(data.sheetName));
       try {
         UrlFetchApp.fetch("https://script.google.com/macros/s/AKfycbwJ3d4lCV4MS1Ks6HuGaIPQfv-X6Gn0c5UV3WV-mxge9NUgt1vCkEEJcXFx9YwOEg_S/exec", { method: "post" });
       } catch (syncError) {
@@ -126,11 +187,6 @@ function doPost(e) {
     } 
     // 3. API Lưu chi tiết từng câu
     else if (action === "saveDetailList") {
-      if (!isGuidedStudentId(data.name)) {
-        setSaveStatus(requestId, "ignored");
-        return ContentService.createTextOutput(JSON.stringify({ status: "ignored" }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
       var sheet = ss.getSheetByName("Details") || ss.insertSheet("Details");
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Ngữ cảnh câu", "Từ chuẩn", "Học sinh trả lời", "Đúng/Sai", "Điểm", "Lịch sử đọc sai (STT)"]);
@@ -180,8 +236,11 @@ function safeFeedbackCell(value) {
   return /^[=+\-@]/.test(text) ? "'" + text : text;
 }
 
-function isGuidedStudentId(value) {
-  var allowedIds = ["trinh", "duong gia dat", "minh", "vy"];
-  var normalized = String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
-  return allowedIds.indexOf(normalized) !== -1;
+function normalizeLessonId(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getLeaderboardCacheKey(lessonId) {
+  var encodedLessonId = Utilities.base64EncodeWebSafe(String(lessonId || "").slice(0, 100));
+  return "leaderboard:" + encodedLessonId;
 }
