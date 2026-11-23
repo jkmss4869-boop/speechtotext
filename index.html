@@ -707,6 +707,28 @@
             font-weight: 700;
         }
 
+        .student-progress-card, .xp-result-card {
+            margin: 14px 0 18px;
+            padding: 16px;
+            border: 1px solid #ddd6fe;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #faf5ff, #fff7ed);
+            text-align: left;
+        }
+        .student-progress-card[hidden] { display: none; }
+        .progress-card-top, .xp-card-top { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .progress-level { color:var(--primary-dark); font-size:1.15rem; font-weight:800; }
+        .progress-xp { color:#6b7280; font-size:.9rem; font-weight:700; }
+        .progress-bar { height:10px; margin:10px 0 8px; overflow:hidden; border-radius:999px; background:#e9d5ff; }
+        .progress-bar-fill { height:100%; width:0; border-radius:inherit; background:linear-gradient(90deg,#8b5cf6,#f59e0b); transition:width .35s ease; }
+        .progress-card-meta { display:flex; flex-wrap:wrap; gap:8px 16px; color:#6b7280; font-size:.86rem; }
+        .xp-result-card { display:none; text-align:center; }
+        .xp-result-card.visible { display:block; animation:xp-pop .45s ease both; }
+        .xp-total-award { margin:5px 0; color:#6d28d9; font-size:2rem; font-weight:900; }
+        .xp-badges { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:8px 0; }
+        .xp-badge { padding:5px 10px; border-radius:999px; background:#fff; color:#7c2d12; font-weight:800; }
+        @keyframes xp-pop { from { opacity:0; transform:scale(.94) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
         .leaderboard-panel {
             margin: 18px 0;
             padding: 16px;
@@ -1345,6 +1367,7 @@
                 <small id="student-id-status" aria-live="polite" style="display:block; margin-top:6px; color:#6b7280;">
                     Nhập ID học sinh được cấp để bắt đầu.
                 </small>
+                <section id="student-progress-card" class="student-progress-card" aria-live="polite" hidden></section>
             </div>
 
             <div class="form-group">
@@ -1356,7 +1379,6 @@
             <button id="guided-start-button" class="btn btn-primary" onclick="startGame()" disabled>
                 <span>Bắt đầu luyện tập</span> 🚀
             </button>
-            <button id="guided-rank-button" class="btn btn-secondary" onclick="showLeaderboard('setup-screen', 'guided')" hidden>🏆 Xem bảng xếp hạng học sinh</button>
             <button class="btn btn-secondary" onclick="switchScreen('mode-screen')">← Chọn chế độ khác</button>
         </div>
 
@@ -1509,6 +1531,7 @@
                 <div class="total-score" id="final-score">80</div>
                 <p style="font-weight: 600; color: #6b7280;">Tổng điểm phản xạ của bạn</p>
                 <div id="result-rating" class="performance-rating"></div>
+                <section id="xp-result-card" class="xp-result-card" aria-live="polite"></section>
 
                 <div class="table-responsive">
                     <table>
@@ -1528,7 +1551,7 @@
 
                 <div id="save-status" style="margin-bottom: 15px; font-weight: 600;"></div>
 
-                <button class="btn btn-secondary" onclick="showLeaderboard('result-screen')">🏆 Xem thứ hạng của bạn</button>
+                <button id="result-rank-button" class="btn btn-secondary" onclick="showLeaderboard('result-screen')">🏆 Xem thứ hạng của bạn</button>
 
                 <button class="btn btn-primary" onclick="location.reload()">
                     <span>Luyện tập lại bài này</span> 🔄
@@ -1688,6 +1711,7 @@
         let gameMode = 'guided';
         let selectedBuiltInQuestionSet = null;
         let feedbackSubmitting = false;
+        let progressLookupId = '';
 
         // Web Speech API & MediaRecorder Variables
         let recognition = null;
@@ -2096,11 +2120,62 @@
             const isAllowed = GUIDED_STUDENT_IDS.has(studentId);
 
             startButton.disabled = !isAllowed;
-            document.getElementById('guided-rank-button').hidden = !isAllowed;
             status.textContent = !studentId
                 ? 'Nhập ID học sinh được cấp để bắt đầu.'
                 : (isAllowed ? 'ID hợp lệ.' : 'ID không hợp lệ.');
             status.style.color = isAllowed ? 'var(--success)' : (studentId ? 'var(--error)' : '#6b7280');
+            if (isAllowed) loadStudentProgress(studentId);
+            else {
+                progressLookupId = '';
+                document.getElementById('student-progress-card').hidden = true;
+            }
+        }
+
+        async function loadStudentProgress(studentId) {
+            const card = document.getElementById('student-progress-card');
+            if (progressLookupId === studentId) return;
+            progressLookupId = studentId;
+            card.hidden = false;
+            card.innerHTML = '<span style="color:#6b7280">Đang tải XP và chuỗi ngày học...</span>';
+            try {
+                const url = new URL(WEB_APP_URL);
+                url.searchParams.set('action', 'getProgress');
+                url.searchParams.set('studentId', studentId);
+                const response = await fetch(url.toString());
+                const progress = await response.json();
+                if (progressLookupId !== studentId) return;
+                if (!progress.allowed) throw new Error('ID không hợp lệ');
+                renderStudentProgress(card, progress);
+            } catch (error) {
+                if (progressLookupId !== studentId) return;
+                card.innerHTML = '<span style="color:#92400e">Chưa tải được tiến độ. XP vẫn sẽ được cập nhật sau lượt học.</span>';
+            }
+        }
+
+        function renderStudentProgress(card, progress) {
+            const level = Number(progress.level) || 1;
+            const xp = Number(progress.totalXp) || 0;
+            const currentLevelXp = 100 * Math.pow(level - 1, 2);
+            const nextLevelXp = 100 * Math.pow(level, 2);
+            const percent = Math.max(0, Math.min(100, (xp - currentLevelXp) / Math.max(1, nextLevelXp - currentLevelXp) * 100));
+            card.innerHTML = `
+                <div class="progress-card-top"><span class="progress-level">⭐ Cấp ${level}</span><span class="progress-xp">${xp} XP</span></div>
+                <div class="progress-bar" role="progressbar" aria-valuenow="${Math.round(percent)}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar-fill" style="width:${percent}%"></div></div>
+                <div class="progress-card-meta"><span>Còn ${Math.max(0, nextLevelXp - xp)} XP tới cấp ${level + 1}</span><span>🔥 ${Number(progress.streak) || 0} ngày liên tiếp</span><span>📚 ${Number(progress.sessions) || 0} lượt học</span><span>🎯 Kỷ lục: hôm nay ${Number(progress.todayBest) || 0}% · hôm qua ${Number(progress.yesterdayBest) || 0}%</span></div>`;
+        }
+
+        function renderXpAward(reward) {
+            const card = document.getElementById('xp-result-card');
+            if (!reward || !reward.progress) { card.classList.remove('visible'); return; }
+            const badges = [];
+            if (reward.breakthrough) badges.push('<span class="xp-badge">🔥 New Record! +50 XP</span>');
+            if (reward.flawless) badges.push('<span class="xp-badge">💯 Flawless First Try +100 XP</span>');
+            if (reward.levelUp) badges.push(`<span class="xp-badge">🎉 Đã lên Cấp ${reward.progress.level}!</span>`);
+            card.innerHTML = `<div class="xp-card-top"><strong>✨ Tiến độ học hôm nay</strong><span>⭐ Cấp ${reward.progress.level}</span></div>
+                <div class="xp-total-award">+${Number(reward.xpAward) || 0} XP</div>
+                <div class="xp-badges">${badges.join('') || '<span class="xp-badge">👏 Tiếp tục duy trì nhé!</span>'}</div>
+                <div class="progress-card-meta" style="justify-content:center"><span>Tổng ${reward.progress.totalXp} XP</span><span>🔥 ${reward.progress.streak} ngày liên tiếp</span><span>🎯 Kỷ lục hôm nay ${reward.progress.todayBest}%</span></div>`;
+            card.classList.add('visible');
         }
 
         function renderBuiltInQuestionSets() {
@@ -2942,6 +3017,8 @@
                         : scorePercent >= 50 ? 'Đạt' : 'Cần cố gắng';
             document.getElementById('final-score').innerText = `${score} / ${maxScore}`;
             document.getElementById('result-rating').innerText = `Xếp loại: ${rating} · ${scorePercent}%`;
+            document.getElementById('xp-result-card').classList.remove('visible');
+            document.getElementById('result-rank-button').hidden = gameMode !== 'free';
 
             // Render bảng chi tiết
             const tbody = document.getElementById('detail-table-body');
@@ -3048,7 +3125,8 @@
                 total: vocabList.length * 10,
                 gameType: "Speech Reflex",
                 mode: gameMode,
-                duration: elapsedSeconds
+                duration: elapsedSeconds,
+                firstTryPerfect: score === vocabList.length * 10 && detailedAnswers.length === vocabList.length && detailedAnswers.every(item => item.wrongAttempts === 'Không có')
             };
 
             const payloadDetail = {
@@ -3067,19 +3145,32 @@
                     body: JSON.stringify(payloadScore)
                 });
 
-                if (gameMode !== 'free') {
-                    await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify(payloadDetail)
-                    });
+                const scoreConfirmation = await waitForSaveConfirmation(payloadScore.requestId);
+                if (!scoreConfirmation || scoreConfirmation.status !== 'score_saved' || !scoreConfirmation.reward || !scoreConfirmation.reward.progress) {
+                    if (scoreConfirmation && scoreConfirmation.status === 'error') {
+                        statusEl.innerText = `❌ Không lưu được điểm/XP: ${scoreConfirmation.message || 'Apps Script báo lỗi.'}`;
+                        statusEl.style.color = "var(--error)";
+                    } else if (scoreConfirmation && scoreConfirmation.status === 'ignored') {
+                        statusEl.innerText = '❌ Apps Script từ chối lưu: ID học sinh không được phép hoặc chế độ không hợp lệ.';
+                        statusEl.style.color = "var(--error)";
+                    } else {
+                        statusEl.innerText = '⚠️ Chưa xác nhận được XP; chưa gửi chi tiết bài học. Kiểm tra Apps Script và cập nhật phiên bản deploy.';
+                        statusEl.style.color = "#b45309";
+                    }
+                    return;
                 }
 
+                await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payloadDetail)
+                });
                 const confirmation = await waitForSaveConfirmation(payloadScore.requestId);
-                if (confirmation && confirmation.status === 'saved') {
-                    statusEl.innerText = '✅ Apps Script đã xác nhận ghi điểm vào Scores và chi tiết vào Details.';
+                if (confirmation && confirmation.status === 'saved' && confirmation.reward && confirmation.reward.progress) {
+                    statusEl.innerText = '✅ Đã lưu kết quả, XP và chi tiết bài học.';
                     statusEl.style.color = "var(--success)";
+                    renderXpAward(confirmation.reward);
                 } else if (confirmation && confirmation.status === 'ignored') {
                     statusEl.innerText = '❌ Apps Script từ chối lưu: ID học sinh không được cho phép hoặc chế độ không hợp lệ.';
                     statusEl.style.color = "var(--error)";
@@ -3087,7 +3178,11 @@
                     statusEl.innerText = `❌ Apps Script báo lỗi khi lưu: ${confirmation.message || 'Lỗi không xác định.'}`;
                     statusEl.style.color = "var(--error)";
                 } else if (confirmation && confirmation.status === 'score_saved') {
-                    statusEl.innerText = '⚠️ Apps Script xác nhận đã ghi điểm vào Scores, nhưng chưa xác nhận phần chi tiết trong Details.';
+                    statusEl.innerText = '⚠️ Điểm và XP đã lưu; phần chi tiết bài học chưa được xác nhận.';
+                    statusEl.style.color = "#b45309";
+                    renderXpAward(confirmation.reward);
+                } else if (confirmation && confirmation.status === 'saved') {
+                    statusEl.innerText = '⚠️ Chi tiết đã được gửi nhưng thiếu biên nhận XP; không thể xác nhận tổng tiến độ. Kiểm tra phiên bản Apps Script.';
                     statusEl.style.color = "#b45309";
                 } else {
                     statusEl.innerText = '⚠️ Đã gửi yêu cầu nhưng chưa nhận được xác nhận từ Apps Script. Hãy cập nhật mã Apps Script rồi deploy phiên bản mới.';

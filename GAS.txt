@@ -13,6 +13,17 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === "getProgress") {
+    var studentId = normalizeStudentId(e.parameter.studentId);
+    var allowedIds = ["trinh", "duong gia dat", "minh", "vy"];
+    if (allowedIds.indexOf(studentId) === -1) {
+      return ContentService.createTextOutput(JSON.stringify({ allowed: false }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify(getStudentProgress(studentId)))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Bảng học sinh: chỉ trả thành tích của đúng ID bài đang xem.
   if (action === "getLeaderboard") {
     var lessonId = String(e.parameter.lessonId || "").trim();
@@ -160,33 +171,23 @@ function doPost(e) {
         return ContentService.createTextOutput(JSON.stringify({ status: "ignored" }))
           .setMimeType(ContentService.MimeType.JSON);
       }
-      var sheet = ss.getSheetByName("Scores") || ss.insertSheet("Scores");
-      // Nếu chưa có header thì tạo header
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Game Type", "Điểm đạt", "Tổng điểm", "Thời lượng (giây)", "Chế độ"]);
-      }
-      var submittedDuration = Math.max(0, Math.floor(Number(data.duration) || 0));
-      sheet.appendRow([
-        new Date(),
-        safeFeedbackCell(submittedName.slice(0, 40)),
-        safeFeedbackCell(String(data.sheetName || "").slice(0, 100)),
-        safeFeedbackCell(String(data.gameType || "Speech Reflex").slice(0, 80)),
-        Number(data.score) || 0,
-        Number(data.total) || 0,
-        submittedDuration,
-        submittedMode
-      ]);
+      var reward = saveGuidedScoreWithXp(data, ss, submittedName);
       CacheService.getScriptCache().remove(getLeaderboardCacheKey(data.sheetName));
       try {
         UrlFetchApp.fetch("https://script.google.com/macros/s/AKfycbwJ3d4lCV4MS1Ks6HuGaIPQfv-X6Gn0c5UV3WV-mxge9NUgt1vCkEEJcXFx9YwOEg_S/exec", { method: "post" });
       } catch (syncError) {
         console.warn("Đã lưu điểm nhưng đồng bộ phụ thất bại:", syncError);
       }
-      setSaveStatus(requestId, "score_saved");
+      setSaveStatus(requestId, "score_saved", "", reward);
 
     } 
     // 3. API Lưu chi tiết từng câu
     else if (action === "saveDetailList") {
+      var savedScoreStatus = CacheService.getScriptCache().get("saveStatus:" + requestId);
+      var savedScorePayload = savedScoreStatus ? JSON.parse(savedScoreStatus) : {};
+      if (!savedScorePayload.reward || !savedScorePayload.reward.progress) {
+        throw new Error("Không lưu chi tiết vì lượt điểm/XP chưa được xác nhận.");
+      }
       var sheet = ss.getSheetByName("Details") || ss.insertSheet("Details");
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Ngữ cảnh câu", "Từ chuẩn", "Học sinh trả lời", "Đúng/Sai", "Điểm", "Lịch sử đọc sai (STT)"]);
@@ -207,7 +208,7 @@ function doPost(e) {
           details[i].wrongAttempts || "Không có"
         ]);
       }
-      setSaveStatus(requestId, "saved");
+      setSaveStatus(requestId, "saved", "", savedScorePayload.reward);
     }
     else {
       throw new Error("Unsupported action");
@@ -217,23 +218,166 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    setSaveStatus(requestId, "error", error.toString());
+    var priorStatus = requestId ? CacheService.getScriptCache().get("saveStatus:" + requestId) : null;
+    var priorPayload = priorStatus ? JSON.parse(priorStatus) : null;
+    if (data && data.action === "saveDetailList" && priorPayload && priorPayload.reward) {
+      setSaveStatus(requestId, "score_saved", "Điểm và XP đã lưu; phần chi tiết gặp lỗi.", priorPayload.reward);
+    } else {
+      setSaveStatus(requestId, "error", error.toString());
+    }
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function setSaveStatus(requestId, status, message) {
+function setSaveStatus(requestId, status, message, reward) {
   if (!/^[a-zA-Z0-9-]{10,80}$/.test(String(requestId || ""))) return;
   var result = { status: status };
   if (message) result.message = String(message).slice(0, 180);
+  if (reward) result.reward = reward;
   CacheService.getScriptCache().put("saveStatus:" + requestId, JSON.stringify(result), 300);
+}
+
+function saveGuidedScoreWithXp(data, ss, submittedName) {
+  var studentId = normalizeStudentId(submittedName);
+  var allowedIds = ["trinh", "duong gia dat", "minh", "vy"];
+  if (allowedIds.indexOf(studentId) === -1) throw new Error("ID học sinh không được phép.");
+  var requestId = String(data.requestId || "");
+  if (!/^[a-zA-Z0-9-]{10,80}$/.test(requestId)) throw new Error("Mã lượt học không hợp lệ.");
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ledger = ss.getSheetByName("XPLedger") || ss.insertSheet("XPLedger");
+    if (ledger.getLastRow() === 0) {
+      ledger.appendRow(["Timestamp", "Request ID", "Student ID", "Lesson ID", "Score", "Total", "Score %", "Base XP", "Breakthrough XP", "Flawless XP", "XP Award", "First Try Today", "Personal Best Today", "Day", "Reward JSON"]);
+    }
+    var ledgerRows = ledger.getDataRange().getValues();
+    for (var i = 1; i < ledgerRows.length; i++) {
+      if (String(ledgerRows[i][1]) === requestId) return JSON.parse(String(ledgerRows[i][14] || "{}"));
+    }
+
+    var progressSheet = ss.getSheetByName("StudentProgress") || ss.insertSheet("StudentProgress");
+    if (progressSheet.getLastRow() === 0) {
+      progressSheet.appendRow(["Student ID", "Total XP", "Level", "Today_Best (%)", "Yesterday_Best (%)", "Best Date", "Last Active", "Current Streak", "Best Streak", "Sessions"]);
+    }
+    var progressRows = progressSheet.getDataRange().getValues();
+    var progressRowIndex = -1;
+    for (var p = 1; p < progressRows.length; p++) {
+      if (normalizeStudentId(progressRows[p][0]) === studentId) { progressRowIndex = p + 1; break; }
+    }
+    var old = progressRowIndex > 0 ? progressRows[progressRowIndex - 1] : null;
+    var totalXp = old ? Number(old[1]) || 0 : 0;
+    var previousLevel = levelFromXp(totalXp);
+    var today = formatDayKey(new Date());
+    var yesterday = formatDayKey(new Date(Date.now() - 86400000));
+    var bestDate = old ? cellDayKey(old[5]) : "";
+    var lastActive = old ? cellDayKey(old[6]) : "";
+    var todayBest = old ? Number(old[3]) || 0 : 0;
+    var yesterdayBest = old ? Number(old[4]) || 0 : 0;
+    if (bestDate !== today) {
+      yesterdayBest = bestDate === yesterday ? todayBest : 0;
+      todayBest = 0;
+    }
+
+    var scoreValue = Math.max(0, Number(data.score) || 0);
+    var totalValue = Math.max(0, Number(data.total) || 0);
+    var scorePercent = totalValue > 0 ? Math.round(scoreValue / totalValue * 10000) / 100 : 0;
+    var firstTryToday = true;
+    for (var l = 1; l < ledgerRows.length; l++) {
+      if (normalizeStudentId(ledgerRows[l][2]) === studentId && cellDayKey(ledgerRows[l][13]) === today) { firstTryToday = false; break; }
+    }
+    var breakthrough = scorePercent > yesterdayBest && todayBest <= yesterdayBest;
+    var flawless = firstTryToday && data.firstTryPerfect === true && totalValue > 0 && scoreValue === totalValue;
+    var baseXp = Math.round(scoreValue);
+    var breakthroughXp = breakthrough ? 50 : 0;
+    var flawlessXp = flawless ? 100 : 0;
+    var award = baseXp + breakthroughXp + flawlessXp;
+    var updatedTodayBest = Math.max(todayBest, scorePercent);
+    var streak = old ? Number(old[7]) || 0 : 0;
+    var bestStreak = old ? Number(old[8]) || 0 : 0;
+    if (lastActive !== today) streak = lastActive === yesterday ? streak + 1 : 1;
+    bestStreak = Math.max(bestStreak, streak);
+    var nextTotalXp = totalXp + award;
+    var nextLevel = levelFromXp(nextTotalXp);
+    var progress = {
+      allowed: true, studentId: studentId, totalXp: nextTotalXp, level: nextLevel,
+      todayBest: updatedTodayBest, yesterdayBest: yesterdayBest,
+      streak: streak, bestStreak: bestStreak,
+      sessions: (old ? Number(old[9]) || 0 : 0) + 1
+    };
+    var reward = { xpAward: award, baseXp: baseXp, breakthrough: breakthrough,
+      flawless: flawless, levelUp: nextLevel > previousLevel, progress: progress };
+    var submittedDuration = Math.max(0, Math.floor(Number(data.duration) || 0));
+    var scoreSheet = ss.getSheetByName("Scores") || ss.insertSheet("Scores");
+    if (scoreSheet.getLastRow() === 0) scoreSheet.appendRow(["Timestamp", "Tên học sinh", "Bài học", "Game Type", "Điểm đạt", "Tổng điểm", "Thời lượng (giây)", "Chế độ"]);
+    scoreSheet.appendRow([new Date(), safeFeedbackCell(studentId), safeFeedbackCell(String(data.sheetName || "").slice(0, 100)),
+      safeFeedbackCell(String(data.gameType || "Speech Reflex").slice(0, 80)), scoreValue, totalValue, submittedDuration, "guided"]);
+    ledger.appendRow([new Date(), requestId, studentId, safeFeedbackCell(String(data.sheetName || "").slice(0, 100)), scoreValue,
+      totalValue, scorePercent, baseXp, breakthroughXp, flawlessXp, award, firstTryToday, updatedTodayBest, today, JSON.stringify(reward)]);
+    var progressValues = [studentId, nextTotalXp, nextLevel, updatedTodayBest, yesterdayBest, today, today,
+      streak, bestStreak, progress.sessions];
+    if (progressRowIndex > 0) progressSheet.getRange(progressRowIndex, 1, 1, progressValues.length).setValues([progressValues]);
+    else progressSheet.appendRow(progressValues);
+    return reward;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getStudentProgress(studentId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("StudentProgress");
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { allowed: true, studentId: studentId, totalXp: 0, level: 1, todayBest: 0, yesterdayBest: 0, streak: 0, bestStreak: 0, sessions: 0 };
+  }
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (normalizeStudentId(rows[i][0]) !== studentId) continue;
+    var today = formatDayKey(new Date());
+    var yesterday = formatDayKey(new Date(Date.now() - 86400000));
+    var todayBest = Number(rows[i][3]) || 0;
+    var yesterdayBest = Number(rows[i][4]) || 0;
+    var bestDate = cellDayKey(rows[i][5]);
+    if (bestDate !== today) {
+      yesterdayBest = bestDate === yesterday ? todayBest : 0;
+      todayBest = 0;
+    }
+    var lastActive = cellDayKey(rows[i][6]);
+    var streak = Number(rows[i][7]) || 0;
+    if (lastActive !== today && lastActive !== yesterday) streak = 0;
+    return { allowed: true, studentId: studentId, totalXp: Number(rows[i][1]) || 0,
+      level: levelFromXp(Number(rows[i][1]) || 0), todayBest: todayBest, yesterdayBest: yesterdayBest,
+      streak: streak, bestStreak: Number(rows[i][8]) || 0, sessions: Number(rows[i][9]) || 0 };
+  }
+  return { allowed: true, studentId: studentId, totalXp: 0, level: 1, todayBest: 0, yesterdayBest: 0, streak: 0, bestStreak: 0, sessions: 0 };
+}
+
+function levelFromXp(totalXp) {
+  return Math.floor(Math.sqrt(Math.max(0, Number(totalXp) || 0) / 100)) + 1;
+}
+
+function formatDayKey(date) {
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd");
+}
+
+function cellDayKey(value) {
+  if (!value) return "";
+  if (Object.prototype.toString.call(value) === "[object Date]") return formatDayKey(value);
+  var text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  var parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? "" : formatDayKey(parsed);
 }
 
 // Tránh hiểu nội dung góp ý bắt đầu bằng ký hiệu công thức thành công thức trong Sheets.
 function safeFeedbackCell(value) {
   var text = String(value || "");
   return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function normalizeStudentId(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function normalizeLessonId(value) {
