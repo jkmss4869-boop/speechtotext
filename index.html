@@ -2410,8 +2410,9 @@
             detailedAnswers = [];
             initSpeechRecognition();
 
-            // Chế độ có hướng dẫn xin quyền mic sớm cho MediaRecorder; chế độ tự học chỉ xin khi người chơi bấm mic.
-            if (isAuthorizedGuidedStudent()) {
+            // Chỉ mở luồng mic riêng khi MediaRecorder sẽ dùng nó.
+            // Trên điện thoại, để SpeechRecognition tự quản lý mic tránh xung đột.
+            if (shouldRecordAudioLocally()) {
                 try {
                     if (!mediaStream || !mediaStream.active) {
                         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
