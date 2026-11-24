@@ -743,8 +743,8 @@
         .tier-platinum .medal-rim { background:linear-gradient(135deg,#fff,#e0f2fe 45%,#64748b); } .tier-platinum .medal-face { background:radial-gradient(circle at 35% 30%,#fff,#cbd5e1 62%,#475569); }
         .tier-rosegold .medal-rim { background:linear-gradient(135deg,#fff1f2,#fb7185 45%,#f59e0b 78%,#881337); } .tier-rosegold .medal-face { background:radial-gradient(circle at 35% 30%,#ffe4e6,#f43f5e 52%,#b45309 85%,#4c0519); }
         .tier-diamond .medal-rim { background:linear-gradient(135deg,#fff,#bae6fd 30%,#e879f9 62%,#fde047 85%,#1e293b); } .tier-diamond .medal-face { background:radial-gradient(circle at 35% 28%,#312e81,#1e1b4b 55%,#090d16); }
-        @keyframes celestialSheen { 0%,55% { transform:translateX(-140%) rotate(25deg); } 85%,100% { transform:translateX(180%) rotate(25deg); } }
-        .medal-item:not(.is-locked) .medal-face::before { content:''; position:absolute; top:-30%; left:0; z-index:3; width:48%; height:160%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),rgba(186,230,253,.72),transparent); animation:celestialSheen 3.8s infinite ease-in-out; pointer-events:none; }
+        @keyframes celestialSheen { from { transform:translateX(-140%) rotate(25deg); } to { transform:translateX(180%) rotate(25deg); } }
+        .medal-item:not(.is-locked) .medal-face::before { content:''; position:absolute; top:-30%; left:0; z-index:3; width:48%; height:160%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),rgba(186,230,253,.72),transparent); animation:celestialSheen 3.8s linear infinite; pointer-events:none; will-change:transform; }
         .medal-item.is-locked .medal-rim { filter:grayscale(1) opacity(.45); box-shadow:none; }
         .medal-lock { position:absolute; right:-2px; bottom:-2px; z-index:4; display:flex; align-items:center; justify-content:center; width:15px; height:15px; border:1px solid #cbd5e1; border-radius:9999px; background:#fff; color:#475569; box-shadow:0 1px 3px rgba(15,23,42,.16); pointer-events:none; }
         .medal-item:not(.is-locked) .medal-lock { display:none; }
@@ -756,7 +756,10 @@
         .layout-one-row .medal-item:last-child:hover .medal-tooltip, .layout-one-row .medal-item:last-child:focus-visible .medal-tooltip { transform:translateY(0); }
         .medal-tier-tag { display:inline-block; margin-bottom:3px; padding:1px 6px; border-radius:9999px; background:rgba(255,255,255,.12); color:#fde68a; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
         .medal-title-text { color:#fff; font-weight:700; } .medal-cond-text { margin-top:2px; color:#cbd5e1; font-size:10px; }
-        @media (max-width:520px) { .medal-list { width:100%; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; } }
+        .medal-detail { margin-top:8px; padding:8px 10px; border:1px solid #e2e8f0; border-radius:10px; background:#f8fafc; color:#475569; font-size:12px; line-height:1.45; }
+        .medal-detail[hidden] { display:none; }
+        @media (max-width:520px) { .medal-list { width:100%; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; } .medal-tooltip { display:none; } }
+        @media (prefers-reduced-motion:reduce) { .medal-item:not(.is-locked) .medal-face::before { animation:none; } }
         .xp-result-card { display:none; text-align:center; }
         .xp-result-card.visible { display:block; animation:xp-pop .45s ease both; }
         .xp-total-award { margin:5px 0; color:#6d28d9; font-size:2rem; font-weight:900; }
@@ -2209,8 +2212,8 @@
                 <div class="progress-card-top"><span class="progress-level">⭐ Cấp ${level}</span><span class="progress-xp">${xp} XP</span></div>
                 <div class="progress-bar" role="progressbar" aria-valuenow="${Math.round(percent)}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar-fill" style="width:${percent}%"></div></div>
                 <div class="progress-card-meta"><span>Còn ${Math.max(0, nextLevelXp - xp)} XP tới cấp ${level + 1}</span><span>🔥 ${Number(progress.streak) || 0} ngày liên tiếp</span><span>📚 ${Number(progress.sessions) || 0} lượt học</span><span>🔤 ${Number(progress.wordsLearned) || 0} từ đã học/ôn</span><span>🎯 Kỷ lục: hôm nay ${Number(progress.todayBest) || 0}% · hôm qua ${Number(progress.yesterdayBest) || 0}%</span></div>
-                <section class="medal-xp-section"><div class="medal-section-header"><span id="student-medal-count"></span><small>Di chuột hoặc chạm huy hiệu để xem điều kiện</small></div><div id="student-medals" class="medal-list layout-one-row" aria-label="Danh hiệu học tập"></div></section>`;
-            renderAchievementMedals(progress, 'student-medals', 'student-medal-count');
+                <section class="medal-xp-section"><div class="medal-section-header"><span id="student-medal-count"></span><small>Chạm huy hiệu để xem điều kiện</small></div><div id="student-medals" class="medal-list layout-one-row" aria-label="Danh hiệu học tập"></div><div id="student-medal-detail" class="medal-detail" role="status" aria-live="polite" hidden></div></section>`;
+            renderAchievementMedals(progress, 'student-medals', 'student-medal-count', 'student-medal-detail');
         }
 
         function getAchievementUnlockStates(progress) {
@@ -2233,11 +2236,15 @@
             ];
         }
 
-        function renderAchievementMedals(progress, listId, countId) {
+        function renderAchievementMedals(progress, listId, countId, detailId) {
             const list = document.getElementById(listId);
             const count = document.getElementById(countId);
+            const detail = document.getElementById(detailId);
             const template = document.getElementById('achievement-medals-template');
-            if (!list || !count || !template) return;
+            if (!list || !count || !detail || !template) return;
+            list.replaceChildren();
+            detail.hidden = true;
+            detail.textContent = '';
             const statuses = getAchievementUnlockStates(progress);
             const medals = template.content.querySelectorAll('.medal-item');
             let unlockedCount = 0;
@@ -2251,6 +2258,23 @@
                 const stateText = unlocked ? 'Đã mở khóa' : 'Chưa mở khóa';
                 medal.setAttribute('aria-label', `${title}. ${condition}. ${stateText}.`);
                 medal.title = `${title} — ${condition} · ${stateText}`;
+                medal.setAttribute('role', 'button');
+                medal.setAttribute('aria-controls', detailId);
+                medal.setAttribute('aria-expanded', 'false');
+                medal.style.cursor = 'pointer';
+                medal.addEventListener('click', () => {
+                    const isOpen = medal.getAttribute('aria-expanded') === 'true';
+                    list.querySelectorAll('.medal-item').forEach(item => item.setAttribute('aria-expanded', 'false'));
+                    detail.hidden = isOpen;
+                    detail.textContent = isOpen ? '' : `${title} — ${condition}. ${stateText}.`;
+                    if (!isOpen) medal.setAttribute('aria-expanded', 'true');
+                });
+                medal.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        medal.click();
+                    }
+                });
                 list.appendChild(medal);
             });
             count.textContent = `🏅 Danh hiệu sưu tầm (${unlockedCount}/10)`;
@@ -2270,8 +2294,8 @@
                 <div class="xp-total-award">+${Number(reward.xpAward) || 0} XP</div>
                 <div class="xp-badges">${badges.join('') || '<span class="xp-badge">👏 Tiếp tục duy trì nhé!</span>'}</div>
                 <div class="progress-card-meta" style="justify-content:center"><span>Tổng ${reward.progress.totalXp} XP</span><span>${wordCountText} · tổng ${Number(reward.progress.wordsLearned) || 0}</span><span>🔥 ${reward.progress.streak} ngày liên tiếp</span><span>🎯 Kỷ lục hôm nay ${reward.progress.todayBest}%</span></div>
-                <section class="medal-xp-section"><div class="medal-section-header"><span id="result-medal-count"></span><small>Di chuột hoặc chạm huy hiệu để xem điều kiện</small></div><div id="result-medals" class="medal-list layout-one-row" aria-label="Danh hiệu học tập"></div></section>`;
-            renderAchievementMedals(reward.progress, 'result-medals', 'result-medal-count');
+                <section class="medal-xp-section"><div class="medal-section-header"><span id="result-medal-count"></span><small>Chạm huy hiệu để xem điều kiện</small></div><div id="result-medals" class="medal-list layout-one-row" aria-label="Danh hiệu học tập"></div><div id="result-medal-detail" class="medal-detail" role="status" aria-live="polite" hidden></div></section>`;
+            renderAchievementMedals(reward.progress, 'result-medals', 'result-medal-count', 'result-medal-detail');
             card.classList.add('visible');
         }
 
