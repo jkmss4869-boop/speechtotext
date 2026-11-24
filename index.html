@@ -2211,7 +2211,7 @@
             card.innerHTML = `
                 <div class="progress-card-top"><span class="progress-level">⭐ Cấp ${level}</span><span class="progress-xp">${xp} XP</span></div>
                 <div class="progress-bar" role="progressbar" aria-valuenow="${Math.round(percent)}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar-fill" style="width:${percent}%"></div></div>
-                <div class="progress-card-meta"><span>Còn ${Math.max(0, nextLevelXp - xp)} XP tới cấp ${level + 1}</span><span>🔥 ${Number(progress.streak) || 0} ngày liên tiếp</span><span>📚 ${Number(progress.sessions) || 0} lượt học</span><span>🔤 ${Number(progress.wordsLearned) || 0} từ đã học/ôn</span><span>🎯 Kỷ lục: hôm nay ${Number(progress.todayBest) || 0}% · hôm qua ${Number(progress.yesterdayBest) || 0}%</span></div>
+                <div class="progress-card-meta"><span>Còn ${Math.max(0, nextLevelXp - xp)} XP tới cấp ${level + 1}</span><span>🔥 ${Number(progress.streak) || 0} ngày liên tiếp</span><span>📚 ${Number(progress.sessions) || 0} lượt học</span><span>🆕 ${Number(progress.wordsLearned) || 0} từ mới</span><span>🔁 ${Number(progress.wordsReviewed) || 0} lượt từ đã ôn</span><span>🎯 Kỷ lục: hôm nay ${Number(progress.todayBest) || 0}% · hôm qua ${Number(progress.yesterdayBest) || 0}%</span></div>
                 <section class="medal-xp-section"><div class="medal-section-header"><span id="student-medal-count"></span><small>Chạm huy hiệu để xem điều kiện</small></div><div id="student-medals" class="medal-list layout-one-row" aria-label="Danh hiệu học tập"></div><div id="student-medal-detail" class="medal-detail" role="status" aria-live="polite" hidden></div></section>`;
             renderAchievementMedals(progress, 'student-medals', 'student-medal-count', 'student-medal-detail');
         }
@@ -2288,12 +2288,12 @@
             if (reward.flawless) badges.push('<span class="xp-badge">💯 Flawless First Try +100 XP</span>');
             if (reward.levelUp) badges.push(`<span class="xp-badge">🎉 Đã lên Cấp ${reward.progress.level}!</span>`);
             const wordCountText = reward.lessonAlreadyCounted
-                ? `🔤 Bài này đã được tính trước (${Number(reward.lessonWordCount) || 0} từ)`
-                : `🔤 +${Number(reward.vocabularyCount) || 0} từ được cộng`;
+                ? `🔁 +${Number(reward.reviewedCount) || 0} lượt từ được ôn trong bài`
+                : `🆕 +${Number(reward.vocabularyCount) || 0} từ mới`;
             card.innerHTML = `<div class="xp-card-top"><strong>✨ Tiến độ học hôm nay</strong><span>⭐ Cấp ${reward.progress.level}</span></div>
                 <div class="xp-total-award">+${Number(reward.xpAward) || 0} XP</div>
                 <div class="xp-badges">${badges.join('') || '<span class="xp-badge">👏 Tiếp tục duy trì nhé!</span>'}</div>
-                <div class="progress-card-meta" style="justify-content:center"><span>Tổng ${reward.progress.totalXp} XP</span><span>${wordCountText} · tổng ${Number(reward.progress.wordsLearned) || 0}</span><span>🔥 ${reward.progress.streak} ngày liên tiếp</span><span>🎯 Kỷ lục hôm nay ${reward.progress.todayBest}%</span></div>
+                <div class="progress-card-meta" style="justify-content:center"><span>Tổng ${reward.progress.totalXp} XP</span><span>${wordCountText}</span><span>🆕 Tổng ${Number(reward.progress.wordsLearned) || 0} từ mới</span><span>🔁 Tổng ${Number(reward.progress.wordsReviewed) || 0} lượt từ ôn</span><span>🔥 ${reward.progress.streak} ngày liên tiếp</span><span>🎯 Kỷ lục hôm nay ${reward.progress.todayBest}%</span></div>
                 <section class="medal-xp-section"><div class="medal-section-header"><span id="result-medal-count"></span><small>Chạm huy hiệu để xem điều kiện</small></div><div id="result-medals" class="medal-list layout-one-row" aria-label="Danh hiệu học tập"></div><div id="result-medal-detail" class="medal-detail" role="status" aria-live="polite" hidden></div></section>`;
             renderAchievementMedals(reward.progress, 'result-medals', 'result-medal-count', 'result-medal-detail');
             card.classList.add('visible');
