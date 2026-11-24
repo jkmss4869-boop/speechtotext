@@ -250,9 +250,10 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
   try {
     var ledger = ss.getSheetByName("XPLedger") || ss.insertSheet("XPLedger");
     if (ledger.getLastRow() === 0) {
-      ledger.appendRow(["Timestamp", "Request ID", "Student ID", "Lesson ID", "Score", "Total", "Score %", "Base XP", "Breakthrough XP", "Flawless XP", "XP Award", "First Try Today", "Personal Best Today", "Day", "Reward JSON", "Words in Lesson"]);
-    } else if (String(ledger.getRange(1, 16).getValue()) !== "Words in Lesson") {
-      ledger.getRange(1, 16).setValue("Words in Lesson");
+      ledger.appendRow(["Timestamp", "Request ID", "Student ID", "Lesson ID", "Score", "Total", "Score %", "Base XP", "Breakthrough XP", "Flawless XP", "XP Award", "First Try Today", "Personal Best Today", "Day", "Reward JSON", "Words in Lesson", "Words Credited"]);
+    } else {
+      if (String(ledger.getRange(1, 16).getValue()) !== "Words in Lesson") ledger.getRange(1, 16).setValue("Words in Lesson");
+      if (String(ledger.getRange(1, 17).getValue()) !== "Words Credited") ledger.getRange(1, 17).setValue("Words Credited");
     }
     var ledgerRows = ledger.getDataRange().getValues();
     for (var i = 1; i < ledgerRows.length; i++) {
@@ -273,7 +274,13 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
     var old = progressRowIndex > 0 ? progressRows[progressRowIndex - 1] : null;
     var totalXp = old ? Number(old[1]) || 0 : 0;
     var vocabularyCount = Math.max(0, Math.floor(Number(data.vocabularyCount) || 0));
-    var totalWordsLearned = (old ? Number(old[10]) || 0 : 0) + vocabularyCount;
+    var lessonId = String(data.sheetName || "").trim();
+    var lessonKey = normalizeLessonId(lessonId);
+    if (!lessonKey) throw new Error("Thiếu ID bài học để tính từ vựng.");
+    var wordStats = getUniqueLessonWordStats(studentId, ledgerRows);
+    var lessonAlreadyCounted = Object.prototype.hasOwnProperty.call(wordStats.byLesson, lessonKey);
+    var vocabularyCredited = lessonAlreadyCounted ? 0 : vocabularyCount;
+    var totalWordsLearned = wordStats.totalWords + vocabularyCredited;
     var previousLevel = levelFromXp(totalXp);
     var today = formatDayKey(new Date());
     var yesterday = formatDayKey(new Date(Date.now() - 86400000));
@@ -289,6 +296,7 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
     var scoreValue = Math.max(0, Number(data.score) || 0);
     var totalValue = Math.max(0, Number(data.total) || 0);
     var scorePercent = totalValue > 0 ? Math.round(scoreValue / totalValue * 10000) / 100 : 0;
+    var perfectRun = scorePercent >= 100 || hasPerfectRun(studentId, ledgerRows);
     var firstTryToday = true;
     for (var l = 1; l < ledgerRows.length; l++) {
       if (normalizeStudentId(ledgerRows[l][2]) === studentId && cellDayKey(ledgerRows[l][13]) === today) { firstTryToday = false; break; }
@@ -311,9 +319,10 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
       todayBest: updatedTodayBest, yesterdayBest: yesterdayBest,
       streak: streak, bestStreak: bestStreak,
       sessions: (old ? Number(old[9]) || 0 : 0) + 1,
-      wordsLearned: totalWordsLearned
+      wordsLearned: totalWordsLearned, perfectRun: perfectRun
     };
-    var reward = { xpAward: award, baseXp: baseXp, vocabularyCount: vocabularyCount, breakthrough: breakthrough,
+    var reward = { xpAward: award, baseXp: baseXp, vocabularyCount: vocabularyCredited,
+      lessonWordCount: vocabularyCount, lessonAlreadyCounted: lessonAlreadyCounted, breakthrough: breakthrough,
       flawless: flawless, levelUp: nextLevel > previousLevel, progress: progress };
     var submittedDuration = Math.max(0, Math.floor(Number(data.duration) || 0));
     var scoreSheet = ss.getSheetByName("Scores") || ss.insertSheet("Scores");
@@ -321,7 +330,7 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
     scoreSheet.appendRow([new Date(), safeFeedbackCell(studentId), safeFeedbackCell(String(data.sheetName || "").slice(0, 100)),
       safeFeedbackCell(String(data.gameType || "Speech Reflex").slice(0, 80)), scoreValue, totalValue, submittedDuration, "guided"]);
     ledger.appendRow([new Date(), requestId, studentId, safeFeedbackCell(String(data.sheetName || "").slice(0, 100)), scoreValue,
-      totalValue, scorePercent, baseXp, breakthroughXp, flawlessXp, award, firstTryToday, updatedTodayBest, today, JSON.stringify(reward), vocabularyCount]);
+      totalValue, scorePercent, baseXp, breakthroughXp, flawlessXp, award, firstTryToday, updatedTodayBest, today, JSON.stringify(reward), vocabularyCount, vocabularyCredited]);
     var progressValues = [studentId, nextTotalXp, nextLevel, updatedTodayBest, yesterdayBest, today, today,
       streak, bestStreak, progress.sessions, totalWordsLearned];
     if (progressRowIndex > 0) progressSheet.getRange(progressRowIndex, 1, 1, progressValues.length).setValues([progressValues]);
@@ -334,9 +343,16 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
 
 function getStudentProgress(studentId) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ledgerSheet = ss.getSheetByName("XPLedger");
+  var ledgerRows = ledgerSheet && ledgerSheet.getLastRow() > 1 ? ledgerSheet.getDataRange().getValues() : [];
+  var totalWordsLearned = getUniqueLessonWordStats(studentId, ledgerRows).totalWords;
+  var perfectRun = hasPerfectRun(studentId, ledgerRows);
   var sheet = ss.getSheetByName("StudentProgress");
   if (!sheet || sheet.getLastRow() < 2) {
-    return { allowed: true, studentId: studentId, totalXp: 0, level: 1, todayBest: 0, yesterdayBest: 0, streak: 0, bestStreak: 0, sessions: 0, wordsLearned: 0 };
+    return { allowed: true, studentId: studentId, totalXp: 0, level: 1, todayBest: 0, yesterdayBest: 0, streak: 0, bestStreak: 0, sessions: 0, wordsLearned: totalWordsLearned, perfectRun: perfectRun };
+  }
+  if (String(sheet.getRange(1, 11).getValue()) !== "Words Learned") {
+    sheet.getRange(1, 11).setValue("Words Learned");
   }
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
@@ -353,12 +369,38 @@ function getStudentProgress(studentId) {
     var lastActive = cellDayKey(rows[i][6]);
     var streak = Number(rows[i][7]) || 0;
     if (lastActive !== today && lastActive !== yesterday) streak = 0;
+    if ((Number(rows[i][10]) || 0) !== totalWordsLearned) {
+      sheet.getRange(i + 1, 11).setValue(totalWordsLearned);
+    }
     return { allowed: true, studentId: studentId, totalXp: Number(rows[i][1]) || 0,
       level: levelFromXp(Number(rows[i][1]) || 0), todayBest: todayBest, yesterdayBest: yesterdayBest,
       streak: streak, bestStreak: Number(rows[i][8]) || 0, sessions: Number(rows[i][9]) || 0,
-      wordsLearned: Number(rows[i][10]) || 0 };
+      wordsLearned: totalWordsLearned, perfectRun: perfectRun };
   }
-  return { allowed: true, studentId: studentId, totalXp: 0, level: 1, todayBest: 0, yesterdayBest: 0, streak: 0, bestStreak: 0, sessions: 0, wordsLearned: 0 };
+  return { allowed: true, studentId: studentId, totalXp: 0, level: 1, todayBest: 0, yesterdayBest: 0, streak: 0, bestStreak: 0, sessions: 0, wordsLearned: totalWordsLearned, perfectRun: perfectRun };
+}
+
+function hasPerfectRun(studentId, ledgerRows) {
+  for (var i = 1; i < ledgerRows.length; i++) {
+    if (normalizeStudentId(ledgerRows[i][2]) === studentId && Number(ledgerRows[i][6]) >= 100) return true;
+  }
+  return false;
+}
+
+function getUniqueLessonWordStats(studentId, ledgerRows) {
+  var byLesson = {};
+  for (var i = 1; i < ledgerRows.length; i++) {
+    var row = ledgerRows[i];
+    if (normalizeStudentId(row[2]) !== studentId) continue;
+    var lessonKey = normalizeLessonId(row[3]);
+    if (!lessonKey || Object.prototype.hasOwnProperty.call(byLesson, lessonKey)) continue;
+    var words = Number(row[15]) || Math.floor((Number(row[5]) || 0) / 10);
+    byLesson[lessonKey] = Math.max(0, words);
+  }
+  var totalWords = Object.keys(byLesson).reduce(function(sum, lessonKey) {
+    return sum + byLesson[lessonKey];
+  }, 0);
+  return { byLesson: byLesson, totalWords: totalWords };
 }
 
 function levelFromXp(totalXp) {
