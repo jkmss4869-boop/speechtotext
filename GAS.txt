@@ -250,11 +250,12 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
   try {
     var ledger = ss.getSheetByName("XPLedger") || ss.insertSheet("XPLedger");
     if (ledger.getLastRow() === 0) {
-      ledger.appendRow(["Timestamp", "Request ID", "Student ID", "Lesson ID", "Score", "Total", "Score %", "Base XP", "Breakthrough XP", "Flawless XP", "XP Award", "First Try Today", "Personal Best Today", "Day", "Reward JSON", "Words in Lesson", "Words Credited", "Words Reviewed"]);
+      ledger.appendRow(["Timestamp", "Request ID", "Student ID", "Lesson ID", "Score", "Total", "Score %", "Base XP", "Breakthrough XP", "Flawless XP", "XP Award", "First Try Today", "Personal Best Today", "Day", "Reward JSON", "Words in Lesson", "Words Credited", "Words Reviewed", "Lesson Fingerprint"]);
     } else {
       if (String(ledger.getRange(1, 16).getValue()) !== "Words in Lesson") ledger.getRange(1, 16).setValue("Words in Lesson");
       if (String(ledger.getRange(1, 17).getValue()) !== "Words Credited") ledger.getRange(1, 17).setValue("Words Credited");
       if (String(ledger.getRange(1, 18).getValue()) !== "Words Reviewed") ledger.getRange(1, 18).setValue("Words Reviewed");
+      if (String(ledger.getRange(1, 19).getValue()) !== "Lesson Fingerprint") ledger.getRange(1, 19).setValue("Lesson Fingerprint");
     }
     var ledgerRows = ledger.getDataRange().getValues();
     for (var i = 1; i < ledgerRows.length; i++) {
@@ -277,12 +278,18 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
     }
     var old = progressRowIndex > 0 ? progressRows[progressRowIndex - 1] : null;
     var totalXp = old ? Number(old[1]) || 0 : 0;
-    var vocabularyCount = Math.max(0, Math.floor(Number(data.vocabularyCount) || 0));
+    var totalValue = Math.max(0, Number(data.total) || 0);
+    var vocabularyCount = totalValue > 0
+      ? Math.floor(totalValue / 10)
+      : Math.max(0, Math.floor(Number(data.vocabularyCount) || 0));
     var lessonId = String(data.sheetName || "").trim();
     var lessonKey = normalizeLessonId(lessonId);
+    var fingerprintInput = String(data.lessonFingerprint || "").trim().toLowerCase();
+    var lessonFingerprint = /^[a-f0-9]{16}$/.test(fingerprintInput) ? fingerprintInput : "";
     if (!lessonKey) throw new Error("Thiếu ID bài học để tính từ vựng.");
     var wordStats = getLessonVocabularyStats(studentId, ledgerRows);
-    var lessonAlreadyCounted = Object.prototype.hasOwnProperty.call(wordStats.byLesson, lessonKey);
+    var lessonAlreadyCounted = Boolean(Object.prototype.hasOwnProperty.call(wordStats.byLesson, lessonKey) ||
+      (lessonFingerprint && Object.prototype.hasOwnProperty.call(wordStats.byFingerprint, lessonFingerprint)));
     var vocabularyCredited = lessonAlreadyCounted ? 0 : vocabularyCount;
     var vocabularyReviewed = lessonAlreadyCounted ? vocabularyCount : 0;
     var totalWordsLearned = wordStats.totalWords + vocabularyCredited;
@@ -300,7 +307,6 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
     }
 
     var scoreValue = Math.max(0, Number(data.score) || 0);
-    var totalValue = Math.max(0, Number(data.total) || 0);
     var scorePercent = totalValue > 0 ? Math.round(scoreValue / totalValue * 10000) / 100 : 0;
     var perfectRun = scorePercent >= 100 || hasPerfectRun(studentId, ledgerRows);
     var firstTryToday = true;
@@ -336,7 +342,7 @@ function saveGuidedScoreWithXp(data, ss, submittedName) {
     scoreSheet.appendRow([new Date(), safeFeedbackCell(studentId), safeFeedbackCell(String(data.sheetName || "").slice(0, 100)),
       safeFeedbackCell(String(data.gameType || "Speech Reflex").slice(0, 80)), scoreValue, totalValue, submittedDuration, "guided"]);
     ledger.appendRow([new Date(), requestId, studentId, safeFeedbackCell(String(data.sheetName || "").slice(0, 100)), scoreValue,
-      totalValue, scorePercent, baseXp, breakthroughXp, flawlessXp, award, firstTryToday, updatedTodayBest, today, JSON.stringify(reward), vocabularyCount, vocabularyCredited, vocabularyReviewed]);
+      totalValue, scorePercent, baseXp, breakthroughXp, flawlessXp, award, firstTryToday, updatedTodayBest, today, JSON.stringify(reward), vocabularyCount, vocabularyCredited, vocabularyReviewed, lessonFingerprint]);
     var progressValues = [studentId, nextTotalXp, nextLevel, updatedTodayBest, yesterdayBest, today, today,
       streak, bestStreak, progress.sessions, totalWordsLearned, totalWordsReviewed];
     if (progressRowIndex > 0) progressSheet.getRange(progressRowIndex, 1, 1, progressValues.length).setValues([progressValues]);
@@ -403,21 +409,32 @@ function hasPerfectRun(studentId, ledgerRows) {
 
 function getLessonVocabularyStats(studentId, ledgerRows) {
   var byLesson = {};
+  var byFingerprint = {};
+  var uniqueLessons = {};
   var totalReviewed = 0;
   for (var i = 1; i < ledgerRows.length; i++) {
     var row = ledgerRows[i];
     if (normalizeStudentId(row[2]) !== studentId) continue;
     var lessonKey = normalizeLessonId(row[3]);
     if (!lessonKey) continue;
-    var words = Number(row[15]) || Math.floor((Number(row[5]) || 0) / 10);
+    var fingerprint = String(row[18] || "").trim().toLowerCase();
+    var rowTotal = Number(row[5]) || 0;
+    var words = rowTotal > 0 ? Math.floor(rowTotal / 10) : (Number(row[15]) || 0);
     words = Math.max(0, words);
-    if (Object.prototype.hasOwnProperty.call(byLesson, lessonKey)) totalReviewed += words;
-    else byLesson[lessonKey] = words;
+    var alreadyCounted = Object.prototype.hasOwnProperty.call(byLesson, lessonKey) ||
+      (fingerprint && Object.prototype.hasOwnProperty.call(byFingerprint, fingerprint));
+    if (alreadyCounted) {
+      totalReviewed += words;
+    } else {
+      uniqueLessons[fingerprint ? "fp:" + fingerprint : "id:" + lessonKey] = words;
+    }
+    byLesson[lessonKey] = true;
+    if (fingerprint) byFingerprint[fingerprint] = true;
   }
-  var totalWords = Object.keys(byLesson).reduce(function(sum, lessonKey) {
-    return sum + byLesson[lessonKey];
+  var totalWords = Object.keys(uniqueLessons).reduce(function(sum, uniqueKey) {
+    return sum + uniqueLessons[uniqueKey];
   }, 0);
-  return { byLesson: byLesson, totalWords: totalWords, totalReviewed: totalReviewed };
+  return { byLesson: byLesson, byFingerprint: byFingerprint, totalWords: totalWords, totalReviewed: totalReviewed };
 }
 
 function levelFromXp(totalXp) {

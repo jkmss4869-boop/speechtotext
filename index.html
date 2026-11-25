@@ -2149,6 +2149,20 @@
             return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
         }
 
+        function createLessonFingerprint(questions) {
+            const canonical = questions.map(item => [item.context, item.word]
+                .map(value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')))
+                .map(pair => JSON.stringify(pair)).sort().join('|');
+            let hashA = 2166136261;
+            let hashB = 5381;
+            for (let i = 0; i < canonical.length; i++) {
+                const code = canonical.charCodeAt(i);
+                hashA = Math.imul(hashA ^ code, 16777619) >>> 0;
+                hashB = (Math.imul(hashB, 33) ^ code) >>> 0;
+            }
+            return `${hashA.toString(16).padStart(8, '0')}${hashB.toString(16).padStart(8, '0')}`;
+        }
+
         function isAuthorizedGuidedStudent() {
             const input = document.getElementById('student-name');
             const enteredId = input ? input.value : studentName;
@@ -3242,6 +3256,7 @@
                 action: "saveScore",
                 requestId: createSaveRequestId(),
                 sheetName: currentSheetName,
+                lessonFingerprint: createLessonFingerprint(vocabList),
                 name: studentName,
                 score: score,
                 total: vocabList.length * 10,
